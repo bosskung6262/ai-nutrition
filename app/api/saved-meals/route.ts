@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
 import { JsonStore } from '@/lib/server-db'
-import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
+import { SESSION_COOKIE, verifySession } from '@/lib/session'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -54,15 +55,16 @@ const recipeSchema: z.ZodType<StoredRecipe> = z.object({
 })
 
 const saveRequestSchema = z.object({
-  userEmail: z.string().email({ message: 'อีเมลไม่ถูกต้อง' }).optional(),
   mealTime: z.enum(['breakfast', 'lunch', 'dinner']),
   recipe: recipeSchema,
 })
 
 const MAX_MEALS_PER_USER = 50
 
-function normEmail(email: string | undefined): string {
-  return (email || '').trim().toLowerCase()
+/** Resolve the caller's identity from the signed session cookie (never from the request body/query). */
+async function sessionEmail(): Promise<string | null> {
+  const cookieStore = await cookies()
+  return verifySession(cookieStore.get(SESSION_COOKIE)?.value)
 }
 
 function genId(): string {
@@ -92,17 +94,12 @@ function checkSupabaseEnv(): SupabaseEnvStatus {
 }
 
 /**
- * Get a Supabase client that uses the user's auth session (RLS-aware).
- * Falls back to the admin client if the session client cannot be created
- * (e.g. cookies() unavailable during static rendering).
+ * Supabase client for server-side data access. Every handler verifies the
+ * signed session cookie BEFORE calling this, so the service-role client is
+ * only ever used to read/write the authenticated user's own rows.
  */
-async function getSupabaseClient() {
-  try {
-    const cookieStore = await cookies()
-    return createClient(cookieStore)
-  } catch {
-    return createAdminClient()
-  }
+function getSupabaseClient() {
+  return createAdminClient()
 }
 
 function toFallback(meal: StoredMeal, email: string) {
@@ -204,12 +201,9 @@ export async function POST(req: Request) {
       )
     }
     const data = parsed.data
-    const email = normEmail(data.userEmail)
+    const email = await sessionEmail()
     if (!email) {
-      return NextResponse.json(
-        { error: 'ต้องระบุ userEmail เพื่อบันทึกมื้ออาหาร' },
-        { status: 400 },
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const meal: StoredMeal = {
@@ -248,22 +242,18 @@ export async function POST(req: Request) {
     const msg = error instanceof Error ? error.message : String(error)
     console.error(`${STEP} Unhandled error:`, msg, error)
     return NextResponse.json(
-      { error: 'ไม่สามารถบันทึกมื้ออาหารได้ในขณะนี้', detail: msg },
+      { error: 'ไม่สามารถบันทึกมื้ออาหารได้ในขณะนี้', detail: process.env.NODE_ENV === 'development' ? msg : undefined },
       { status: 500 },
     )
   }
 }
 
-export async function GET(req: Request) {
+export async function GET() {
   const STEP = '[GET /api/saved-meals]'
   try {
-    const { searchParams } = new URL(req.url)
-    const email = normEmail(searchParams.get('userEmail') || undefined)
+    const email = await sessionEmail()
     if (!email) {
-      return NextResponse.json(
-        { error: 'ต้องระบุ userEmail ใน query string' },
-        { status: 400 },
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const envStatus = checkSupabaseEnv()
@@ -290,7 +280,7 @@ export async function GET(req: Request) {
     const msg = error instanceof Error ? error.message : String(error)
     console.error(`${STEP} Unhandled error:`, msg, error)
     return NextResponse.json(
-      { error: 'ไม่สามารถโหลดรายการมื้ออาหารที่บันทึกไว้ได้', detail: msg },
+      { error: 'ไม่สามารถโหลดรายการมื้ออาหารที่บันทึกไว้ได้', detail: process.env.NODE_ENV === 'development' ? msg : undefined },
       { status: 500 },
     )
   }
@@ -299,12 +289,14 @@ export async function GET(req: Request) {
 export async function DELETE(req: Request) {
   const STEP = '[DELETE /api/saved-meals]'
   try {
-    const { searchParams } = new URL(req.url)
-    const email = normEmail(searchParams.get('userEmail') || undefined)
-    const id = searchParams.get('id') || ''
-    if (!email || !id) {
+    const email = await sessionEmail()
+    if (!email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const id = new URL(req.url).searchParams.get('id') || ''
+    if (!id) {
       return NextResponse.json(
-        { error: 'ต้องระบุ userEmail และ id ใน query string' },
+        { error: 'ต้องระบุ id ใน query string' },
         { status: 400 },
       )
     }
@@ -335,7 +327,7 @@ export async function DELETE(req: Request) {
     const msg = error instanceof Error ? error.message : String(error)
     console.error(`${STEP} Unhandled error:`, msg, error)
     return NextResponse.json(
-      { error: 'ไม่สามารถลบมื้ออาหารได้', detail: msg },
+      { error: 'ไม่สามารถลบมื้ออาหารได้', detail: process.env.NODE_ENV === 'development' ? msg : undefined },
       { status: 500 },
     )
   }

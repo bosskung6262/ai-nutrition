@@ -66,7 +66,6 @@ export default function RecipesPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            userEmail: user.email,
             mealTime: mealId as 'breakfast' | 'lunch' | 'dinner',
             recipe: savedRecipe,
           }),

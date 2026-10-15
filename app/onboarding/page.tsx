@@ -65,7 +65,6 @@ export default function OnboardingPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            userEmail: user.email,
             ...calc,
           }),
         })

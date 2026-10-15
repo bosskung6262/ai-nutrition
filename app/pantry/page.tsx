@@ -231,7 +231,6 @@ export default function PantryPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userEmail: user?.email,
           profile,
           pantry: { mealTime, prepTime, items },
         }),

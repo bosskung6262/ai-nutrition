@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { SESSION_COOKIE, verifySession } from '@/lib/session'
 
 const PROTECTED_PAGES = ['/dashboard', '/onboarding', '/pantry', '/recipes']
 const PROTECTED_API = ['/api/generate-recipe', '/api/profile', '/api/saved-meals']
@@ -7,13 +8,13 @@ const PROTECTED_API = ['/api/generate-recipe', '/api/profile', '/api/saved-meals
 /**
  * Next.js 16 proxy — replaces the deprecated middleware.ts convention.
  *
- * Auth state is stored in a simple `auth_session` cookie set/cleared by
- * AuthProvider on the client.  This proxy reads that cookie via the
- * built-in NextRequest cookie API (no custom parseCookies, no btoa/atob).
+ * The `auth_session` cookie is httpOnly + signed and minted server-side by
+ * `/api/auth/session`.  This proxy verifies the signature (not just presence)
+ * before trusting the session.
  */
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const session = request.cookies.get('auth_session')?.value
+  const session = await verifySession(request.cookies.get(SESSION_COOKIE)?.value)
   const isAuthed = !!session
 
   // ── Root: allow authenticated users to see landing page ────────────

@@ -71,9 +71,7 @@ export default function DashboardPage() {
     if (!user?.email) return
     setSavedLoading(true)
     try {
-      const res = await fetch(
-        '/api/saved-meals?userEmail=' + encodeURIComponent(user.email),
-      )
+      const res = await fetch('/api/saved-meals')
       const data = (await res.json().catch(() => null)) as
         | { meals?: SavedMeal[]; via?: string }
         | null
@@ -114,7 +112,7 @@ export default function DashboardPage() {
     try {
       if (user?.email) {
         await fetch(
-          `/api/saved-meals?userEmail=${encodeURIComponent(user.email)}&id=${encodeURIComponent(id)}`,
+          `/api/saved-meals?id=${encodeURIComponent(id)}`,
           { method: 'DELETE' },
         ).catch(() => null)
       }

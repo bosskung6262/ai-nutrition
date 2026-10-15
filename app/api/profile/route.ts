@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { z } from 'zod'
 import { JsonStore } from '@/lib/server-db'
+import { SESSION_COOKIE, verifySession } from '@/lib/session'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -24,7 +26,6 @@ type SavedProfile = {
 const profileStore = new JsonStore<string, SavedProfile>('ai-nutrition-profiles.json')
 
 const profileSchema = z.object({
-  userEmail: z.string().email({ message: 'อีเมลไม่ถูกต้อง' }).optional(),
   age: z.string().min(1),
   gender: z.string().min(1),
   height: z.string().min(1),
@@ -38,8 +39,10 @@ const profileSchema = z.object({
   targetCalories: z.number().optional(),
 })
 
-function normEmail(email: string | undefined): string {
-  return (email || '').trim().toLowerCase()
+/** Resolve the caller's identity from the signed session cookie (never from the request body/query). */
+async function sessionEmail(): Promise<string | null> {
+  const cookieStore = await cookies()
+  return verifySession(cookieStore.get(SESSION_COOKIE)?.value)
 }
 
 export async function POST(req: Request) {
@@ -56,12 +59,9 @@ export async function POST(req: Request) {
     }
 
     const data = parsed.data
-    const email = normEmail(data.userEmail)
+    const email = await sessionEmail()
     if (!email) {
-      return NextResponse.json(
-        { error: 'ต้องระบุ userEmail เพื่อบันทึกโปรไฟล์' },
-        { status: 400 },
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const saved: SavedProfile = {
@@ -87,22 +87,18 @@ export async function POST(req: Request) {
     const msg = error instanceof Error ? error.message : String(error)
     console.error(`${STEP} Unhandled error:`, msg, error)
     return NextResponse.json(
-      { error: 'ไม่สามารถบันทึกโปรไฟล์ได้ในขณะนี้', detail: msg },
+      { error: 'ไม่สามารถบันทึกโปรไฟล์ได้ในขณะนี้', detail: process.env.NODE_ENV === 'development' ? msg : undefined },
       { status: 500 },
     )
   }
 }
 
-export async function GET(req: Request) {
+export async function GET() {
   const STEP = '[GET /api/profile]'
   try {
-    const { searchParams } = new URL(req.url)
-    const email = normEmail(searchParams.get('userEmail') || undefined)
+    const email = await sessionEmail()
     if (!email) {
-      return NextResponse.json(
-        { error: 'ต้องระบุ userEmail ใน query string' },
-        { status: 400 },
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     const found = profileStore.get(email)
     if (!found) {
@@ -113,7 +109,7 @@ export async function GET(req: Request) {
     const msg = error instanceof Error ? error.message : String(error)
     console.error(`${STEP} Unhandled error:`, msg, error)
     return NextResponse.json(
-      { error: 'ไม่สามารถโหลดโปรไฟล์ได้', detail: msg },
+      { error: 'ไม่สามารถโหลดโปรไฟล์ได้', detail: process.env.NODE_ENV === 'development' ? msg : undefined },
       { status: 500 },
     )
   }

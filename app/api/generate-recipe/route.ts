@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { generateObject } from "ai";
 import { google } from "@ai-sdk/google";
 import { z } from "zod";
 import { JsonStore } from "@/lib/server-db";
+import { SESSION_COOKIE, verifySession } from "@/lib/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -323,8 +325,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { userEmail, profile, pantry } = body as {
-      userEmail?: string;
+    const { profile, pantry } = body as {
       profile?: {
         age: string;
         gender: string;
@@ -358,7 +359,10 @@ export async function POST(req: Request) {
       );
     }
 
-    const userKey = (userEmail || "guest-" + todayStr()).trim().toLowerCase();
+    // Quota is keyed off the signed session cookie — never a client-supplied email.
+    const cookieStore = await cookies();
+    const userKey =
+      (await verifySession(cookieStore.get(SESSION_COOKIE)?.value)) || "guest-" + todayStr();
 
     const preCheck = checkQuota(userKey);
     if (!preCheck.ok) {

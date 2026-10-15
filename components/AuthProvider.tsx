@@ -16,21 +16,20 @@ import type { AuthUser } from '@/lib/types'
 
 /* ─── Cookie helpers ────────────────────────────────────────────────── */
 
-const COOKIE_NAME = 'auth_session'
-const COOKIE_ATTR = 'path=/; SameSite=Lax'
-
 /**
- * Write a simple session cookie the proxy can read via
- * `req.cookies.get('auth_session')`.  Only the email is stored —
- * enough for the proxy to decide "authenticated or not" without
- * btoa / base64 / encoding hacks.
+ * The session cookie is httpOnly + signed, so it can only be minted by the
+ * server via `/api/auth/session` — client JS can neither read nor forge it.
  */
 function setSessionCookie(email: string) {
-  document.cookie = `${COOKIE_NAME}=${encodeURIComponent(email)}; ${COOKIE_ATTR}`
+  void fetch('/api/auth/session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  }).catch(() => null)
 }
 
-function clearSessionCookie() {
-  document.cookie = `${COOKIE_NAME}=; ${COOKIE_ATTR}; expires=Thu, 01 Jan 1970 00:00:00 GMT`
+async function clearSessionCookie() {
+  await fetch('/api/auth/session', { method: 'DELETE' }).catch(() => null)
 }
 
 /* ─── Context ───────────────────────────────────────────────────────── */
@@ -89,13 +88,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const u = getCurrentUser()
     setUser(u)
     if (u?.email) setSessionCookie(u.email)
-    else clearSessionCookie()
+    else void clearSessionCookie()
   }
 
-  const logout = () => {
+  const logout = async () => {
     clearAuth()
     setUser(null)
-    clearSessionCookie()
+    // Await the server-side cookie clear so the proxy does not bounce us back
+    // to /dashboard still holding the old session.
+    await clearSessionCookie()
     window.location.href = '/login'
   }
 
