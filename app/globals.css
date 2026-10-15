@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700&family=Prompt:wght@400;500;600&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
@@ -6,7 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-background: var(--background); --color-foreground: var(--foreground); --color-card: var(--card); --color-card-foreground: var(--card-foreground); --color-primary: var(--primary); --color-primary-foreground: var(--primary-foreground); --color-muted-foreground: var(--muted-foreground); --color-border: var(--border); --color-ring: var(--ring); --font-sans: 'Prompt', sans-serif; --font-serif: 'Kanit', sans-serif; --radius-lg: var(--radius);
+  --color-background: var(--background); --color-foreground: var(--foreground); --color-card: var(--card); --color-card-foreground: var(--card-foreground); --color-primary: var(--primary); --color-primary-foreground: var(--primary-foreground); --color-muted-foreground: var(--muted-foreground); --color-border: var(--border); --color-ring: var(--ring); --font-sans: var(--font-prompt), sans-serif; --font-serif: var(--font-kanit), sans-serif; --radius-lg: var(--radius);
 }
 
 :root { color-scheme: light; --background: #f6f5f0; --foreground: #203129; --card: #fffefb; --card-foreground: #203129; --primary: #496653; --primary-foreground: #f8f7f2; --muted-foreground: #75817b; --border: #dfe4dc; --ring: #91a696; --radius: 1.25rem; }
@@ -26,10 +25,20 @@
   --color-ochre-bg: #fef3c7;
   --color-danger: #dc2626;
   --color-danger-bg: #fee2e2;
-  --font-kanit: 'Kanit', sans-serif;
-  --font-prompt: 'Prompt', sans-serif;
   --radius-card: 1.5rem;
   --radius-pill: 9999px;
+
+  /* Semantic aliases (unprefixed) — these resolve the --bg / --accent / --primary-dark / --muted
+     references used across components; without them those declarations were dropped silently. */
+  --bg: var(--color-bg);
+  --accent: var(--color-accent);
+  --primary-dark: var(--color-primary-dark);
+  --muted: var(--muted-foreground);
+  /* Brand + surface aliases reused by nav/cards/modals */
+  --surface: var(--color-card-bg);
+  --brand: #778873;
+  --brand-ink: #4A6353;
+  --ink-soft: #4a5748;
 }
 
 * { box-sizing: border-box; }
@@ -43,7 +52,7 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: 'Prompt', sans-serif;
+  font-family: var(--font-prompt), sans-serif;
   line-height: 1.6;
 }
 
@@ -677,265 +686,7 @@ a { color: inherit; text-decoration: none; }
   }
 }
 
-/* ─── Landing Page Styles (from ai-nutrition) — Scoped to .v0-landing-scope ────────────────────────── */
-
-.v0-landing-scope .nav {
-  min-height: 82px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.v0-landing-scope .kicker {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--primary);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.v0-landing-scope .kicker svg {
-  width: 16px;
-}
-
-.v0-landing-scope .hero {
-  min-height: 650px;
-  display: grid;
-  grid-template-columns: 0.9fr 1.1fr;
-  align-items: center;
-  gap: 40px;
-  padding: 68px 0 80px;
-}
-
-.v0-landing-scope .hero h1 {
-  margin: 0;
-  color: var(--foreground);
-  font: 600 clamp(48px, 6vw, 76px) / 1.1 var(--font-kanit);
-  letter-spacing: -0.045em;
-}
-
-.v0-landing-scope .hero h1 em {
-  color: var(--accent);
-  font-style: normal;
-}
-
-.v0-landing-scope .hero-copy > p {
-  max-width: 470px;
-  margin: 27px 0 30px;
-  color: var(--muted);
-  font-size: 15px;
-  line-height: 1.9;
-}
-
-.v0-landing-scope .hero-actions {
-  display: flex;
-  align-items: center;
-  gap: 25px;
-}
-
-.v0-landing-scope .primary-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  background: var(--primary);
-  color: #fff;
-  border-radius: 999px;
-  padding: 14px 22px;
-  font-size: 13px;
-  box-shadow: 0 10px 24px rgba(119, 136, 115, 0.25);
-  transition: transform 0.2s, box-shadow 0.2s;
-  border: none;
-  cursor: pointer;
-  text-decoration: none;
-}
-
-.v0-landing-scope .primary-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 14px 30px rgba(119, 136, 115, 0.32);
-}
-
-.v0-landing-scope .quiet-link {
-  color: var(--muted);
-  font-size: 13px;
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-.v0-landing-scope .quiet-link:hover {
-  color: var(--primary);
-}
-
-.v0-landing-scope .hero-visual {
-  position: relative;
-  display: grid;
-  place-items: center;
-  min-height: 475px;
-}
-
-.v0-landing-scope .recipe-card {
-  position: relative;
-  z-index: 1;
-  width: min(430px, 82%);
-  padding: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.67);
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 28px 70px rgba(119, 136, 115, 0.16);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  animation: float 6s ease-in-out infinite;
-}
-
-.v0-landing-scope .recipe-topline,
-.v0-landing-scope .recipe-copy,
-.v0-landing-scope .macro-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.v0-landing-scope .eyebrow {
-  margin: 0 0 4px;
-  color: var(--accent);
-  font-size: 11px;
-  font-weight: 500;
-}
-
-.v0-landing-scope .recipe-copy h3 {
-  margin: 0;
-  color: var(--foreground);
-  font: 500 22px / 1.3 var(--font-kanit);
-}
-
-.v0-landing-scope .macro-row {
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
-  color: var(--muted);
-  font-size: 10px;
-}
-
-.v0-landing-scope .macro-row b {
-  color: var(--primary);
-  font-weight: 500;
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0) rotate(1deg);
-  }
-  50% {
-    transform: translateY(-12px) rotate(-1deg);
-  }
-}
-
-.v0-landing-scope .features-section {
-  padding: 105px 0;
-}
-
-.v0-landing-scope .section-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 25px;
-  margin-bottom: 56px;
-}
-
-.v0-landing-scope .section-heading h2 {
-  margin-top: 13px;
-  font-size: clamp(40px, 4.5vw, 59px);
-}
-
-.v0-landing-scope .section-heading h2 em {
-  color: var(--accent);
-  font-style: normal;
-}
-
-.v0-landing-scope .section-heading > p {
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.8;
-}
-
-.v0-landing-scope .features-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-
-.v0-landing-scope .feature-card {
-  padding: 31px 28px 27px;
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  background: #fbfcf8;
-  transition: transform 0.25s, box-shadow 0.25s;
-}
-
-.v0-landing-scope .feature-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 18px 35px rgba(119, 136, 115, 0.1);
-}
-
-.v0-landing-scope .feature-card h3 {
-  margin: 0 0 10px;
-  font: 500 21px var(--font-kanit);
-}
-
-.v0-landing-scope .feature-card p {
-  min-height: 68px;
-  margin: 0 0 21px;
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.8;
-}
-
-@media (max-width: 760px) {
-  .v0-landing-scope .nav {
-    min-height: 70px;
-  }
-
-  .v0-landing-scope .hero {
-    grid-template-columns: 1fr;
-    gap: 8px;
-    padding: 54px 0 55px;
-  }
-
-  .v0-landing-scope .hero h1 {
-    font-size: 57px;
-  }
-
-  .v0-landing-scope .hero-visual {
-    min-height: 390px;
-  }
-
-  .v0-landing-scope .recipe-card {
-    width: 86%;
-  }
-
-  .v0-landing-scope .features-section {
-    padding: 72px 0;
-  }
-
-  .v0-landing-scope .section-heading {
-    display: block;
-    margin-bottom: 35px;
-  }
-
-  .v0-landing-scope .section-heading > p {
-    margin-top: 22px;
-  }
-
-  .v0-landing-scope .features-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .v0-landing-scope .feature-card p {
-    min-height: auto;
-  }
-}
+/* Landing page styles live in app/landing.css (single source). */
 
 /* Responsive helpers — fallback ไม่พึ่ง Tailwind breakpoint */
 .nav-desktop { display: none; }

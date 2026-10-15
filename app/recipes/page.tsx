@@ -98,7 +98,7 @@ export default function RecipesPage() {
   return (
     <div className="min-h-screen bg-[var(--bg)] pb-25">
       <div className="shell flex items-center justify-between py-11 pb-8">
-        <div className="inline-flex items-center gap-2 rounded-full bg-linear-to-br from-[#D2DCB6] to-[#A1BC98] px-4 py-2 text-xs font-semibold text-[#5c6b59]">
+        <div className="inline-flex items-center gap-2 rounded-full bg-linear-to-br from-[var(--color-card)] to-[var(--accent)] px-4 py-2 text-xs font-semibold text-[var(--primary-dark)]">
           <Sparkles className="size-3.5" />
           โควต้าวันนี้เหลือ {quotaRemaining}/3 ครั้ง
         </div>
@@ -107,7 +107,7 @@ export default function RecipesPage() {
       <main className="shell">
         <div className="mx-auto max-w-[1100px]">
           <header className="mb-7">
-            <div className="mb-4 inline-flex items-center gap-1.5 rounded-full bg-[#A1BC98]/20 px-3 py-1.5 text-[11px] font-semibold tracking-wide text-[var(--primary)]">
+            <div className="mb-4 inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)]/20 px-3 py-1.5 text-[11px] font-semibold tracking-wide text-[var(--primary)]">
               <UtensilsCrossed className="size-3" />
               ผลลัพธ์เมนู{mealTimeLabel}
             </div>
@@ -117,7 +117,7 @@ export default function RecipesPage() {
 
           <section className="glass-card mb-6 p-6 sm:p-8">
             <div className="card-header mt-[-4px] flex-wrap gap-4">
-              <button type="button" className="mb-6 flex items-center gap-2 text-sm font-medium text-[#778873] hover:opacity-80" onClick={() => router.push('/pantry')}>
+              <button type="button" className="mb-6 flex items-center gap-2 text-sm font-medium text-[var(--brand)] hover:opacity-80" onClick={() => router.push('/pantry')}>
                 <ArrowLeft className="size-4" />
                 ย้อนกลับ
               </button>
@@ -165,7 +165,7 @@ export default function RecipesPage() {
       </main>
 
       {toast && (
-        <div role="status" className="fixed bottom-8 left-1/2 z-[60] flex -translate-x-1/2 items-center gap-2 rounded-full bg-[#4a5748] px-[18px] py-3 text-[13px] font-medium text-white shadow-[0_12px_36px_rgba(74,87,72,0.35)]">
+        <div role="status" className="fixed bottom-8 left-1/2 z-[60] flex -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--ink-soft)] px-[18px] py-3 text-[13px] font-medium text-white shadow-[0_12px_36px_rgba(74,87,72,0.35)]">
           <BookmarkCheck className="size-4" />
           {toast}
         </div>

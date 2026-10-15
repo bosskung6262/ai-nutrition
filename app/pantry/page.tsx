@@ -92,7 +92,7 @@ function IngredientCategoryCard({ category, ingredients, onAdd, onRemove }: Ingr
       style={{
         padding: 14,
         borderRadius: 16,
-        background: '#FFFFFF',
+        background: 'var(--color-card-bg)',
         border: '1px solid var(--border)',
       }}
     >
@@ -333,7 +333,7 @@ export default function PantryPage() {
 
           <form onSubmit={onSubmit} className="max-w-4xl mx-auto bg-white/80 backdrop-blur-md rounded-3xl p-6 sm:p-10 border border-white/60 shadow-xl my-8">
             <div className="card-header" style={{ marginTop: -4 }}>
-              <button type="button" className="flex items-center gap-2 text-[#778873] hover:opacity-80 font-medium text-sm mb-6" onClick={() => router.push('/onboarding')}>
+              <button type="button" className="flex items-center gap-2 text-[var(--brand)] hover:opacity-80 font-medium text-sm mb-6" onClick={() => router.push('/onboarding')}>
                 <ArrowLeft className="w-4 h-4" />
                 ย้อนกลับ
               </button>
@@ -346,9 +346,9 @@ export default function PantryPage() {
                   borderRadius: 999,
                   background:
                     remaining > 0
-                      ? 'linear-gradient(135deg, #D2DCB6 0%, #A1BC98 100%)'
+                      ? 'linear-gradient(135deg, var(--color-card) 0%, var(--accent) 100%)'
                       : 'rgba(220,38,38,0.1)',
-                  color: remaining > 0 ? '#5c6b59' : 'var(--color-danger)',
+                  color: remaining > 0 ? 'var(--primary-dark)' : 'var(--color-danger)',
                   fontSize: 12,
                   fontWeight: 600,
                 }}
@@ -371,19 +371,19 @@ export default function PantryPage() {
                       key={mt.id}
                       type="button"
                       onClick={() => setMealTime(mt.id)}
-                      className={selected ? 'bg-[#D2DCB6] border-[#778873] rounded-2xl p-5 relative' : 'bg-white border border-white/60 rounded-2xl p-5 relative'}
-                      style={{ border: selected ? '2px solid #778873' : '1.5px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer' }}
+                      className={selected ? 'bg-[var(--color-card)] border-[var(--brand)] rounded-2xl p-5 relative' : 'bg-white border border-white/60 rounded-2xl p-5 relative'}
+                      style={{ border: selected ? '2px solid var(--brand)' : '1.5px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer' }}
                     >
                       {selected && (
                         <div style={{ position: 'absolute', top: 10, right: 10 }}>
-                          <CheckCircle2 className="w-5 h-5 text-[#778873]" />
+                          <CheckCircle2 className="w-5 h-5 text-[var(--brand)]" />
                         </div>
                       )}
 
                       <div style={{ width: 40, height: 40, borderRadius: 14, display: 'grid', placeItems: 'center', marginBottom: 4 }}>
-                        <Icon className={selected ? 'text-[#778873] w-6 h-6' : 'text-[#A1BC98] w-6 h-6'} />
+                        <Icon className={selected ? 'text-[var(--brand)] w-6 h-6' : 'text-[var(--accent)] w-6 h-6'} />
                       </div>
-                      <div style={{ fontFamily: 'var(--font-kanit)', fontSize: 16, fontWeight: 600, color: '#2D3748' }}>{mt.label}</div>
+                      <div style={{ fontFamily: 'var(--font-kanit)', fontSize: 16, fontWeight: 600, color: 'var(--foreground)' }}>{mt.label}</div>
                       <div style={{ fontSize: 12, color: 'var(--muted)' }}>{mt.subtitle}</div>
                     </button>
                   )
@@ -403,17 +403,17 @@ export default function PantryPage() {
                       key={pt.id}
                       type="button"
                       onClick={() => setPrepTime(pt.id)}
-                      className={selected ? 'bg-[#D2DCB6] border-[#778873] rounded-2xl p-4 flex items-center justify-center gap-2' : 'bg-white border border-white/60 rounded-2xl p-4 flex items-center justify-center gap-2'}
-                      style={{ border: selected ? '2px solid #778873' : '1.5px solid var(--border)', cursor: 'pointer' }}
+                      className={selected ? 'bg-[var(--color-card)] border-[var(--brand)] rounded-2xl p-4 flex items-center justify-center gap-2' : 'bg-white border border-white/60 rounded-2xl p-4 flex items-center justify-center gap-2'}
+                      style={{ border: selected ? '2px solid var(--brand)' : '1.5px solid var(--border)', cursor: 'pointer' }}
                     >
                       {selected && (
                         <div style={{ position: 'absolute', top: 8, right: 8 }}>
-                          <CheckCircle2 className="w-5 h-5 text-[#778873]" />
+                          <CheckCircle2 className="w-5 h-5 text-[var(--brand)]" />
                         </div>
                       )}
                       <div className="flex items-center justify-center gap-2">
-                        <ClockIcon className={selected ? 'text-[#778873] w-5 h-5' : 'text-[#A1BC98] w-5 h-5'} />
-                        <span style={{ fontSize: 13, fontWeight: 600, color: '#2D3748' }}>{pt.label}</span>
+                        <ClockIcon className={selected ? 'text-[var(--brand)] w-5 h-5' : 'text-[var(--accent)] w-5 h-5'} />
+                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)' }}>{pt.label}</span>
                       </div>
                     </button>
                   )
@@ -482,7 +482,7 @@ export default function PantryPage() {
                   justifyContent: 'center',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#5c6b59', fontWeight: 600 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--primary-dark)', fontWeight: 600 }}>
                   <Target style={{ width: 13, height: 13 }} />
                   เป้าหมายพลังงานต่อมื้อ
                 </div>
@@ -492,7 +492,7 @@ export default function PantryPage() {
                       fontFamily: 'var(--font-kanit)',
                       fontSize: 34,
                       fontWeight: 600,
-                      color: '#2a3528',
+                      color: 'var(--foreground)',
                     }}
                   >
                     {profile?.targetCalories
@@ -501,9 +501,9 @@ export default function PantryPage() {
                       ? Math.round((profile.tdee * 0.9) / 3).toLocaleString()
                       : '--'}
                   </div>
-                  <div style={{ fontSize: 12, color: '#5c6b59' }}>กิโลแคลอรี/มื้อ</div>
+                  <div style={{ fontSize: 12, color: 'var(--primary-dark)' }}>กิโลแคลอรี/มื้อ</div>
                 </div>
-                <div style={{ fontSize: 10.5, color: '#5c6b59', opacity: 0.9, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <div style={{ fontSize: 10.5, color: 'var(--primary-dark)', opacity: 0.9, display: 'flex', alignItems: 'center', gap: 4 }}>
                   <Flame style={{ width: 11, height: 11 }} />
                   AI จะปรับค่าให้เหมาะสมกับช่วงเวลาและเป้าหมายอีกครั้ง
                 </div>

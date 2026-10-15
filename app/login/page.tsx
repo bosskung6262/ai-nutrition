@@ -76,17 +76,17 @@ function LoginInner() {
                 width: 40,
                 height: 40,
                 borderRadius: '50% 45% 50% 42%',
-                background: '#778873',
+                background: 'var(--brand)',
                 transform: 'rotate(-27deg)',
                 display: 'grid',
                 placeItems: 'center',
                 boxShadow: '0 10px 24px rgba(119,136,115,0.25)',
               }}
             >
-              <Leaf style={{ width: 20, height: 20, color: '#F1F3E0' }} />
+              <Leaf style={{ width: 20, height: 20, color: 'var(--bg)' }} />
             </div>
-            <div style={{ fontFamily: 'var(--font-kanit)', fontSize: 26, fontWeight: 600, color: '#4a5748' }}>
-              Nutri<span style={{ color: '#778873' }}>Genie</span>
+            <div style={{ fontFamily: 'var(--font-kanit)', fontSize: 26, fontWeight: 600, color: 'var(--ink-soft)' }}>
+              Nutri<span style={{ color: 'var(--brand)' }}>Genie</span>
             </div>
           </div>
 

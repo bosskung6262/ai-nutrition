@@ -1,6 +1,8 @@
 'use client'
 
+import { useRef } from 'react'
 import { AlertTriangle, Clock3, Flame, Leaf, X } from 'lucide-react'
+import { useModalA11y } from '@/lib/use-modal-a11y'
 import type { Recipe } from '@/lib/types'
 
 interface RecipeInstructionModalProps {
@@ -9,9 +11,12 @@ interface RecipeInstructionModalProps {
 }
 
 export function RecipeInstructionModal({ recipe, onClose }: RecipeInstructionModalProps) {
+  const cardRef = useRef<HTMLDivElement>(null)
+  useModalA11y(cardRef, onClose)
+
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="recipe-instructions-title">
-      <div className="modal-card relative w-full max-w-2xl p-6 sm:p-8">
+      <div ref={cardRef} className="modal-card relative w-full max-w-2xl p-6 sm:p-8">
         <button type="button" className="modal-close" onClick={onClose} aria-label="ปิด">
           <X />
         </button>
@@ -20,14 +25,14 @@ export function RecipeInstructionModal({ recipe, onClose }: RecipeInstructionMod
           <h2 id="recipe-instructions-title" className="font-[var(--font-kanit)] text-2xl font-semibold text-[var(--foreground)] sm:text-[28px]">{recipe.title}</h2>
           <div className="mt-3 flex flex-wrap gap-4 text-sm text-[var(--muted)]">
             <span className="inline-flex items-center gap-1"><Clock3 className="size-4" />{recipe.time}</span>
-            <span className="inline-flex items-center gap-1 font-semibold text-[#d97706]"><Flame className="size-4" />{recipe.kcal.toLocaleString()} kcal</span>
+            <span className="inline-flex items-center gap-1 font-semibold text-[var(--color-gold)]"><Flame className="size-4" />{recipe.kcal.toLocaleString()} kcal</span>
           </div>
         </div>
 
         <div className="mt-7 grid gap-6 md:grid-cols-[0.8fr_1.2fr]">
           <section className="rounded-[20px] border border-[var(--border)] bg-[var(--bg)] p-5">
             <h3 className="font-[var(--font-kanit)] text-sm font-semibold text-[var(--foreground)]">ส่วนผสมทั้งหมด</h3>
-            <ul className="mt-3 space-y-2 text-sm text-[#2D3748]">
+            <ul className="mt-3 space-y-2 text-sm text-[var(--foreground)]">
               {recipe.ingredients.map((ingredient) => <li key={ingredient}>• {ingredient}</li>)}
             </ul>
             {recipe.allergens.length > 0 && (

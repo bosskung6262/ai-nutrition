@@ -28,7 +28,7 @@ export function RecipeCard({ recipe, isSaved, onOpenInstructions, onSave, onShar
           <Icon className="size-3" />
           <span>{recipe.rank} · {recipe.label}</span>
         </div>
-        <div className="grid size-10 place-items-center rounded-full bg-[#A1BC98]/20 text-[var(--primary)]">
+        <div className="grid size-10 place-items-center rounded-full bg-[var(--accent)]/20 text-[var(--primary)]">
           <UtensilsCrossed className="size-[18px]" />
         </div>
       </div>
@@ -39,12 +39,12 @@ export function RecipeCard({ recipe, isSaved, onOpenInstructions, onSave, onShar
 
       <div className="mt-2 flex items-center gap-4 text-xs text-[var(--muted)]">
         <span className="inline-flex items-center gap-1"><Clock3 className="size-[13px]" />{recipe.time}</span>
-        <span className="inline-flex items-center gap-1 font-semibold text-[#d97706]"><Flame className="size-[13px]" />{recipe.kcal.toLocaleString()} kcal</span>
+        <span className="inline-flex items-center gap-1 font-semibold text-[var(--color-gold)]"><Flame className="size-[13px]" />{recipe.kcal.toLocaleString()} kcal</span>
       </div>
 
       <div className="my-5 grid grid-cols-3 gap-2 border-y border-[var(--border)] py-4">
         {recipe.macros.map((macro, index) => (
-          <div key={macroLabels[index]} className="rounded-2xl bg-[#F1F3E0] p-3 text-center">
+          <div key={macroLabels[index]} className="rounded-2xl bg-[var(--bg)] p-3 text-center">
             <b className="block font-[var(--font-kanit)] text-base font-semibold text-[var(--foreground)]">{macro}</b>
             <span className="text-xs text-[var(--muted)]">{macroLabels[index]}</span>
           </div>
@@ -53,7 +53,7 @@ export function RecipeCard({ recipe, isSaved, onOpenInstructions, onSave, onShar
 
       <section className="min-h-[92px]">
         <h4 className="mb-2 font-[var(--font-kanit)] text-xs font-semibold text-[var(--foreground)]">ส่วนผสมหลัก</h4>
-        <ul className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm text-[#2D3748]">
+        <ul className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm text-[var(--foreground)]">
           {recipe.ingredients.slice(0, 4).map((ingredient) => (
             <li key={ingredient} className="truncate">• {ingredient}</li>
           ))}

@@ -13,12 +13,12 @@ interface BrandLogoProps {
 export function BrandLogo({ compact = false, href = '/' }: BrandLogoProps) {
   return (
     <Link href={href} className="inline-flex items-center gap-2.5" aria-label="NutriGenie หน้าหลัก">
-      <span className="grid size-9 -rotate-[27deg] place-items-center rounded-[50%_45%_50%_42%] bg-[#778873] shadow-sm">
-        <Leaf className="size-[18px] rotate-[27deg] text-[#F1F3E0]" />
+      <span className="grid size-9 -rotate-[27deg] place-items-center rounded-[50%_45%_50%_42%] bg-[var(--brand)] shadow-sm">
+        <Leaf className="size-[18px] rotate-[27deg] text-[var(--bg)]" />
       </span>
       {!compact && (
-        <span className="font-[var(--font-kanit)] text-[22px] font-semibold tracking-[-0.03em] text-[#4A6353]">
-          Nutri<span className="text-[#778873]">Genie</span>
+        <span className="font-[var(--font-kanit)] text-[22px] font-semibold tracking-[-0.03em] text-[var(--brand-ink)]">
+          Nutri<span className="text-[var(--brand)]">Genie</span>
         </span>
       )}
     </Link>
@@ -56,7 +56,7 @@ export function Navbar() {
   const navLinkClass = (href: string) =>
     `rounded-full px-3 py-2 text-sm font-medium transition-colors ${
       pathname === href
-        ? 'bg-[#A1BC98]/20 text-[var(--primary)]'
+        ? 'bg-[var(--accent)]/20 text-[var(--primary)]'
         : 'text-[var(--muted)] hover:text-[var(--primary)]'
     }`
 
@@ -73,7 +73,7 @@ export function Navbar() {
       ]
 
   return (
-    <header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[#F1F3E0]/75 backdrop-blur-xl">
+    <header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--bg)]/75 backdrop-blur-xl">
       <div className="shell flex min-h-[76px] items-center justify-between gap-4">
         <BrandLogo />
 
@@ -91,7 +91,7 @@ export function Navbar() {
             (user ? (
               <>
                 <div className="flex items-center gap-2.5 rounded-full border border-[var(--border)] bg-white px-3 py-1.5">
-                  <span className="grid size-8 place-items-center rounded-full bg-[#D2DCB6] text-[var(--primary)]">
+                  <span className="grid size-8 place-items-center rounded-full bg-[var(--color-card)] text-[var(--primary)]">
                     <User className="size-4" />
                   </span>
                   <span className="max-w-36 truncate text-sm font-semibold text-[var(--foreground)]">
@@ -136,7 +136,7 @@ export function Navbar() {
       {isMenuOpen && (
         <div
           id="mobile-menu"
-          className="border-t border-[var(--border)] bg-[#F1F3E0] px-4 py-3 md:hidden"
+          className="border-t border-[var(--border)] bg-[var(--bg)] px-4 py-3 md:hidden"
         >
           <nav className="shell flex flex-col gap-1" aria-label="เมนูหลักบนมือถือ">
             {navLinks.map((link) => (
@@ -154,7 +154,7 @@ export function Navbar() {
               (user ? (
                 <>
                   <div className="mt-2 flex items-center gap-2.5 rounded-full border border-[var(--border)] bg-white px-3 py-2">
-                    <span className="grid size-8 place-items-center rounded-full bg-[#D2DCB6] text-[var(--primary)]">
+                    <span className="grid size-8 place-items-center rounded-full bg-[var(--color-card)] text-[var(--primary)]">
                       <User className="size-4" />
                     </span>
                     <span className="truncate text-sm font-semibold text-[var(--foreground)]">

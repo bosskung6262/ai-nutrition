@@ -7,8 +7,8 @@ import {
   ChevronRight,
   Sparkles,
 } from "lucide-react";
+import Link from "next/link";
 import { BrandLogo } from "@/components/Navbar";
-import { LandingNavbar } from "@/components/LandingNavbar";
 
 const features = [
   ["01", "แนะนำเมนูเฉพาะคุณ", "AI เข้าใจเป้าหมาย รสนิยม และข้อจำกัดของคุณ"],
@@ -18,8 +18,7 @@ const features = [
 
 export default function Home() {
   return (
-    <div className="v0-landing-scope">
-    <LandingNavbar />
+    <>
     <main id="top">
       <section className="hero shell">
         <div className="hero-copy">
@@ -36,12 +35,12 @@ export default function Home() {
             เป้าหมาย และของที่คุณมีอยู่จริง
           </p>
           <div className="hero-actions">
-            <a href="/onboarding" className="primary-button">
+            <Link href="/onboarding" className="primary-button">
               เริ่มต้นฟรี <ArrowRight />
-            </a>
-            <a href="#how" className="quiet-link">
+            </Link>
+            <Link href="#how" className="quiet-link">
               ดูวิธีการทำงาน <ChevronRight />
-            </a>
+            </Link>
           </div>
           <div className="trust-row">
             <Check /> ออกแบบโดยผู้เชี่ยวชาญด้านโภชนาการ <strong>12,000+</strong>{" "}
@@ -110,9 +109,9 @@ export default function Home() {
               <span className="step-num">{number}</span>
               <h3>{title}</h3>
               <p>{text}</p>
-              <a href="/onboarding" className="text-link">
+              <Link href="/onboarding" className="text-link">
                 เริ่มต้นเลย <ArrowRight />
-              </a>
+              </Link>
             </article>
           ))}
         </div>
@@ -154,17 +153,17 @@ export default function Home() {
               <em>ในแบบของคุณหรือยัง?</em>
             </h2>
           </div>
-          <a href="/onboarding" className="primary-button light">
+          <Link href="/onboarding" className="primary-button light">
             สร้างแผนของฉัน <ArrowRight />
-          </a>
+          </Link>
         </div>
       </section>
       <footer className="footer shell">
         <BrandLogo />
         <span>NutriGenie · กินดีขึ้นในแบบของคุณ</span>
-        <a href="#top">กลับขึ้นด้านบน ↑</a>
+        <Link href="#top">กลับขึ้นด้านบน ↑</Link>
       </footer>
     </main>
-    </div>
+    </>
   );
 }

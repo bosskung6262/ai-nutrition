@@ -138,7 +138,7 @@ export default function OnboardingPage() {
             <div className="card-header" style={{ marginTop: -4 }}>
               <button
                 type="button"
-                className="flex items-center gap-2 text-[#778873] hover:opacity-80 font-medium text-sm mb-6"
+                className="flex items-center gap-2 text-[var(--brand)] hover:opacity-80 font-medium text-sm mb-6"
                 onClick={() => router.push('/dashboard')}
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -223,15 +223,15 @@ export default function OnboardingPage() {
                       type="button"
                       onClick={() => setActivity(lv.id)}
                       aria-pressed={selected}
-                      className="hover:opacity-90 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#A1BC98]/20"
+                      className="hover:opacity-90 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--accent)]/20"
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: 6,
                         padding: '10px 16px',
                         borderRadius: 999,
-                        border: selected ? '2px solid #778873' : '1.5px solid var(--border)',
-                        background: selected ? '#D2DCB6' : '#FFFFFF',
+                        border: selected ? '2px solid var(--brand)' : '1.5px solid var(--border)',
+                        background: selected ? 'var(--color-card)' : 'var(--color-card-bg)',
                         color: selected ? 'var(--primary)' : 'var(--foreground)',
                         fontFamily: 'var(--font-prompt)',
                         fontSize: 13,
@@ -240,7 +240,7 @@ export default function OnboardingPage() {
                         transition: 'all 0.2s ease',
                       }}
                     >
-                      {selected && <Check className="w-3.5 h-3.5 text-[#778873]" />}
+                      {selected && <Check className="w-3.5 h-3.5 text-[var(--brand)]" />}
                       <span>{lv.label}</span>
                     </button>
                   )
@@ -261,15 +261,15 @@ export default function OnboardingPage() {
                       type="button"
                       onClick={() => setDiet(d.id)}
                       aria-pressed={selected}
-                      className="hover:opacity-90 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#A1BC98]/20"
+                      className="hover:opacity-90 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--accent)]/20"
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: 6,
                         padding: '10px 16px',
                         borderRadius: 999,
-                        border: selected ? '2px solid #778873' : '1.5px solid var(--border)',
-                        background: selected ? '#D2DCB6' : '#FFFFFF',
+                        border: selected ? '2px solid var(--brand)' : '1.5px solid var(--border)',
+                        background: selected ? 'var(--color-card)' : 'var(--color-card-bg)',
                         color: selected ? 'var(--primary)' : 'var(--foreground)',
                         fontFamily: 'var(--font-prompt)',
                         fontSize: 13,
@@ -278,7 +278,7 @@ export default function OnboardingPage() {
                         transition: 'all 0.2s ease',
                       }}
                     >
-                      {selected && <Check className="w-3.5 h-3.5 text-[#778873]" />}
+                      {selected && <Check className="w-3.5 h-3.5 text-[var(--brand)]" />}
                       <span>{d.label}</span>
                     </button>
                   )
@@ -317,7 +317,7 @@ export default function OnboardingPage() {
                   alignItems: 'center',
                   gap: 6,
                   fontSize: 12,
-                  color: '#5c6b59',
+                  color: 'var(--primary-dark)',
                   fontWeight: 600,
                   marginBottom: 14,
                 }}
@@ -327,24 +327,24 @@ export default function OnboardingPage() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 10 }}>
                 <div style={{ padding: 14, borderRadius: 16, background: 'rgba(255,255,255,0.55)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#5c6b59', fontWeight: 500, marginBottom: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--primary-dark)', fontWeight: 500, marginBottom: 4 }}>
                     <Activity style={{ width: 12, height: 12 }} />
                     BMR
                   </div>
-                  <div style={{ fontFamily: 'var(--font-kanit)', fontSize: 24, fontWeight: 600, color: '#2a3528' }}>
+                  <div style={{ fontFamily: 'var(--font-kanit)', fontSize: 24, fontWeight: 600, color: 'var(--foreground)' }}>
                     {calc.bmr?.toLocaleString() || '--'}
                   </div>
-                  <div style={{ fontSize: 10.5, color: '#5c6b59', opacity: 0.85 }}>kcal (พื้นฐาน)</div>
+                  <div style={{ fontSize: 10.5, color: 'var(--primary-dark)', opacity: 0.85 }}>kcal (พื้นฐาน)</div>
                 </div>
                 <div style={{ padding: 14, borderRadius: 16, background: 'rgba(255,255,255,0.55)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#5c6b59', fontWeight: 500, marginBottom: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--primary-dark)', fontWeight: 500, marginBottom: 4 }}>
                     <Zap style={{ width: 12, height: 12 }} />
                     TDEE
                   </div>
-                  <div style={{ fontFamily: 'var(--font-kanit)', fontSize: 24, fontWeight: 600, color: '#2a3528' }}>
+                  <div style={{ fontFamily: 'var(--font-kanit)', fontSize: 24, fontWeight: 600, color: 'var(--foreground)' }}>
                     {calc.tdee?.toLocaleString() || '--'}
                   </div>
-                  <div style={{ fontSize: 10.5, color: '#5c6b59', opacity: 0.85 }}>kcal (ต่อวัน)</div>
+                  <div style={{ fontSize: 10.5, color: 'var(--primary-dark)', opacity: 0.85 }}>kcal (ต่อวัน)</div>
                 </div>
                 <div style={{ padding: 14, borderRadius: 16, background: 'rgba(119,136,115,0.85)', color: '#FFF' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, opacity: 0.95, marginBottom: 4 }}>
@@ -357,7 +357,7 @@ export default function OnboardingPage() {
                   <div style={{ fontSize: 10.5, opacity: 0.9 }}>kcal / วัน</div>
                 </div>
               </div>
-              <div style={{ fontSize: 11, color: '#5c6b59', marginTop: 12, opacity: 0.9 }}>
+              <div style={{ fontSize: 11, color: 'var(--primary-dark)', marginTop: 12, opacity: 0.9 }}>
                 * ผลการคำนวณเพียงประมาณการ AI จะปรับค่าให้เหมาะสมต่อมื้ออีกครั้ง
               </div>
             </div>

@@ -54,7 +54,7 @@ export function TagInput({ label, placeholder, values, onChange }: TagInputProps
           padding: 14,
           border: '1.5px solid var(--border)',
           borderRadius: 16,
-          background: '#FFFFFF',
+          background: 'var(--color-card-bg)',
           minHeight: 52,
         }}
       >
@@ -95,7 +95,7 @@ export function TagInput({ label, placeholder, values, onChange }: TagInputProps
               borderRadius: '50%',
               border: 'none',
               background: draft.trim() ? 'var(--primary)' : 'rgba(119,136,115,0.15)',
-              color: draft.trim() ? '#FFFFFF' : 'var(--muted)',
+              color: draft.trim() ? 'var(--color-card-bg)' : 'var(--muted)',
               cursor: draft.trim() ? 'pointer' : 'not-allowed',
               display: 'grid',
               placeItems: 'center',

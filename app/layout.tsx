@@ -1,7 +1,23 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
+import { Kanit, Prompt } from 'next/font/google'
 import { AuthProvider } from '@/components/AuthProvider'
+import { Navbar } from '@/components/Navbar'
 import '@/app/globals.css'
+
+const prompt = Prompt({
+  subsets: ['thai', 'latin'],
+  weight: ['400', '500', '600'],
+  variable: '--font-prompt',
+  display: 'swap',
+})
+
+const kanit = Kanit({
+  subsets: ['thai', 'latin'],
+  weight: ['400', '500', '600'],
+  variable: '--font-kanit',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'NutriGenie — กินดีขึ้นในแบบของคุณ',
@@ -16,9 +32,12 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="th" className="bg-background">
+    <html lang="th" className={`${prompt.variable} ${kanit.variable} bg-background`}>
       <body className="antialiased">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <Navbar />
+          {children}
+        </AuthProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

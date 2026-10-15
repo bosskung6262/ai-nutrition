@@ -21,7 +21,6 @@ import {
   Zap,
 } from 'lucide-react'
 import { useAuth } from '@/components/AuthProvider'
-import { DashboardNavbar } from '@/components/DashboardNavbar'
 import { getDailyQuota, loadProfile, removeSavedMeal } from '@/lib/store'
 import type { DailyQuota, Profile, SavedMeal } from '@/lib/types'
 
@@ -54,7 +53,7 @@ function formatThaiTimestamp(iso: string): string {
 }
 
 export default function DashboardPage() {
-  const { user, loading, logout } = useAuth()
+  const { user, loading } = useAuth()
   const router = useRouter()
   const [quota, setQuota] = useState<DailyQuota>({
     date: new Date().toISOString().split('T')[0],
@@ -141,8 +140,6 @@ export default function DashboardPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: 80 }}>
-      <DashboardNavbar user={user} onLogout={logout} />
-
       <div className="shell" style={{ paddingTop: 36 }}>
         <div style={{ marginBottom: 28 }}>
           <h1
@@ -171,10 +168,10 @@ export default function DashboardPage() {
                     width: 38,
                     height: 38,
                     borderRadius: 12,
-                    background: 'linear-gradient(135deg, #D2DCB6 0%, #A1BC98 100%)',
+                    background: 'linear-gradient(135deg, var(--color-card) 0%, var(--accent) 100%)',
                     display: 'grid',
                     placeItems: 'center',
-                    color: '#5c6b59',
+                    color: 'var(--primary-dark)',
                   }}
                 >
                   <Target style={{ width: 20, height: 20 }} />
@@ -248,18 +245,18 @@ export default function DashboardPage() {
                     style={{
                       padding: 16,
                       borderRadius: 18,
-                      background: 'linear-gradient(135deg, #D2DCB6 0%, #A1BC98 100%)',
+                      background: 'linear-gradient(135deg, var(--color-card) 0%, var(--accent) 100%)',
                       border: '1px solid rgba(119,136,115,0.2)',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#5c6b59', fontSize: 11, fontWeight: 600, marginBottom: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--primary-dark)', fontSize: 11, fontWeight: 600, marginBottom: 6 }}>
                       <Flame style={{ width: 13, height: 13 }} />
                       Target Calories
                     </div>
-                    <div style={{ fontFamily: 'var(--font-kanit)', fontSize: 26, fontWeight: 600, color: '#4a5748' }}>
+                    <div style={{ fontFamily: 'var(--font-kanit)', fontSize: 26, fontWeight: 600, color: 'var(--ink-soft)' }}>
                       {profile.targetCalories?.toLocaleString() ?? (profile.tdee ? Math.round(profile.tdee * 0.9).toLocaleString() : '-')}
                     </div>
-                    <div style={{ fontSize: 11, color: '#5c6b59', opacity: 0.85 }}>เป้าหมายต่อมื้อ/วัน</div>
+                    <div style={{ fontSize: 11, color: 'var(--primary-dark)', opacity: 0.85 }}>เป้าหมายต่อมื้อ/วัน</div>
                   </div>
                 </div>
 
@@ -331,10 +328,10 @@ export default function DashboardPage() {
                     width: 38,
                     height: 38,
                     borderRadius: 12,
-                    background: 'linear-gradient(135deg, #D2DCB6 0%, #A1BC98 100%)',
+                    background: 'linear-gradient(135deg, var(--color-card) 0%, var(--accent) 100%)',
                     display: 'grid',
                     placeItems: 'center',
-                    color: '#5c6b59',
+                    color: 'var(--primary-dark)',
                   }}
                 >
                   <Award style={{ width: 20, height: 20 }} />
@@ -373,7 +370,7 @@ export default function DashboardPage() {
                     flex: 1,
                     height: 10,
                     borderRadius: 999,
-                    background: i < quota.used ? 'var(--card)' : 'linear-gradient(90deg, #A1BC98 0%, #778873 100%)',
+                    background: i < quota.used ? 'var(--card)' : 'linear-gradient(90deg, var(--accent) 0%, var(--brand) 100%)',
                     opacity: i < quota.used ? 0.35 : 1,
                     transition: 'all 0.3s ease',
                   }}
@@ -540,7 +537,7 @@ export default function DashboardPage() {
                     style={{
                       padding: 18,
                       borderRadius: 22,
-                      background: '#FFFFFF',
+                      background: 'var(--color-card-bg)',
                       border: '1px solid var(--border)',
                       display: 'flex',
                       flexDirection: 'column',
@@ -634,15 +631,15 @@ export default function DashboardPage() {
                         borderTop: '1px solid var(--border)',
                       }}
                     >
-                      <div className="bg-[#F1F3E0] rounded-2xl p-3 text-center">
+                      <div className="bg-[var(--bg)] rounded-2xl p-3 text-center">
                         <b style={{ fontSize: 14 }}>{meal.recipe.macros[0]}</b>
                                               <div style={{ fontSize: 12 }}>โปรตีน</div>
                       </div>
-                                            <div className="bg-[#F1F3E0] rounded-2xl p-3 text-center">
+                                            <div className="bg-[var(--bg)] rounded-2xl p-3 text-center">
                         <b style={{ fontSize: 14 }}>{meal.recipe.macros[1]}</b>
                                               <div style={{ fontSize: 12 }}>คาร์โบ</div>
                       </div>
-                                            <div className="bg-[#F1F3E0] rounded-2xl p-3 text-center">
+                                            <div className="bg-[var(--bg)] rounded-2xl p-3 text-center">
                         <b style={{ fontSize: 14 }}>{meal.recipe.macros[2]}</b>
                                               <div style={{ fontSize: 12 }}>ไขมัน</div>
                       </div>
@@ -661,7 +658,7 @@ export default function DashboardPage() {
                         ส่วนผสม
                       </div>
                       {!expanded && (
-                                              <div className="grid grid-cols-2 gap-2.5 text-sm text-[#2D3748]" style={{ marginTop: 6 }}>
+                                              <div className="grid grid-cols-2 gap-2.5 text-sm text-[var(--foreground)]" style={{ marginTop: 6 }}>
                           {meal.recipe.ingredients.slice(0, 3).map((ing, j) => (
                                                   <div key={j}>• {ing}</div>
                           ))}
@@ -671,7 +668,7 @@ export default function DashboardPage() {
                         </div>
                       )}
                       {expanded && (
-                                              <div className="grid grid-cols-2 gap-2.5 text-sm text-[#2D3748]">
+                                              <div className="grid grid-cols-2 gap-2.5 text-sm text-[var(--foreground)]">
                           {meal.recipe.ingredients.map((ing, j) => (
                                                   <div key={j}>• {ing}</div>
                           ))}
