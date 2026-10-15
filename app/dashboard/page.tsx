@@ -101,8 +101,8 @@ export default function DashboardPage() {
 
   if (loading || !user) {
     return (
-      <div style={{ display: 'grid', placeItems: 'center', minHeight: '100vh', background: 'var(--bg)' }}>
-        <div style={{ fontFamily: 'var(--font-kanit)', fontSize: 18, color: 'var(--muted)' }}>กำลังโหลด...</div>
+      <div className="grid min-h-screen place-items-center bg-[var(--bg)]">
+        <div className="font-[var(--font-kanit)] text-lg text-[var(--muted)]">กำลังโหลด...</div>
       </div>
     )
   }
@@ -139,22 +139,13 @@ export default function DashboardPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: 80 }}>
-      <div className="shell" style={{ paddingTop: 36 }}>
-        <div style={{ marginBottom: 28 }}>
-          <h1
-            style={{
-              fontFamily: 'var(--font-kanit)',
-              margin: 0,
-              fontSize: 38,
-              fontWeight: 600,
-              letterSpacing: '-0.03em',
-              color: 'var(--foreground)',
-            }}
-          >
+    <div className="min-h-screen bg-[var(--bg)] pb-20">
+      <div className="shell pt-9">
+        <div className="mb-7">
+          <h1 className="text-[38px] font-semibold tracking-[-0.03em] text-[var(--foreground)]">
             สวัสดีค่ะ, {user.name.split(' ')[0]}
           </h1>
-          <p style={{ margin: '8px 0 0', color: 'var(--muted)', fontSize: 15 }}>
+          <p className="mt-2 text-[15px] text-[var(--muted)]">
             มาสร้างเมนูสุขภาพที่เหมาะกับคุณวันนี้กันเถอะ
           </p>
         </div>
