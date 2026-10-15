@@ -52,12 +52,23 @@ Take the first option that fully works:
 
 ---
 
-## 3. UI & Design Taste: Taste Skill & 21st.dev
+## 3. UI, UX & Design Standards (Taste Skill + Impeccable)
 
-### Design System & Aesthetics
-- **UI Components:** Prioritize UI components inspired by **21st.dev** / **Shadcn UI** patterns using Tailwind CSS.
-- **Consistency:** Reuse design tokens defined in Tailwind config (colors, spacing, typography). Never invent random CSS colors or arbitrary padding per page.
-- **Micro-interactions:** Keep animations smooth, fast, and accessible using Tailwind transition classes.
+### Color & Aesthetics
+- **No AI Gradients:** Avoid generic violet/purple-pink AI gradients. Use clean, solid neutral tones with intentional accent colors.
+- **Color Consistency:** Stick strictly to CSS variables (`--bg`, `--primary`, `--accent`, `--muted`). Never use raw arbitrary hex values (`#123456`) directly in components.
+
+### Typography & Spacing
+- **Hierarchy:** Maintain clear visual hierarchy (H1 > H2 > Subtitle > Body > Caption).
+- **Consistent Spacing:** Use strict Tailwind spacing scale (`gap-2`, `gap-4`, `gap-6`, `p-4`, `p-6`). Never introduce random padding like `p-[17px]`.
+
+### Component Design (21st.dev Standards)
+- **Shadcn/21st.dev Native:** Prioritize accessible primitives built with Radix / Headless UI + Tailwind.
+- **Interactive Feedback:** All buttons and interactive elements MUST have visible hover, active, and focus states (`focus-visible:ring-2`).
+
+### Vercel Polish Checklist
+- Always handle Empty States, Skeleton Loading States, and Error States gracefully.
+- Ensure all Modals handle `Escape` key press and Focus Traps.
 
 ---
 
