@@ -259,7 +259,7 @@ export default function PantryPage() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการเชื่อมต่อ AI'
       console.error('[pantry onSubmit]', msg, err)
-      if (msg.includes('โควต้า')) {
+      if (msg.includes('โควต้า') || msg.includes('ความปลอดภัย')) {
         setError(msg)
       } else {
         setError(

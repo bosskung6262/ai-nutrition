@@ -49,6 +49,21 @@ function commitQuota(userKey: string): {
 const QUANTITY_PATTERN =
   /(\d+(\.\d+)?\s*(ก\.?|กรัม|kg|กิโลกรัม|มล\.?|มิลลิลิตร|ลิตร|ช้อนโต๊ะ|ช้อนชา|ถ้วย|ฟอง|ชิ้น|ผล|ห่อ|กลีบ|แผ่น|หนีบ|ส่วน|ml|g|l|L|tsp|tbsp|cup))|(\d+\/\d+\s*(ถ้วย|ช้อนโต๊ะ|ช้อนชา))/i;
 
+const MAX_FIELD_LEN = 60;
+
+/**
+ * ตัดอักขระควบคุม/ขึ้นบรรทัดใหม่ และอักขระที่ใช้ปลอมหัวข้อ prompt (= •)
+ * แล้วจำกัดความยาว — กัน prompt injection จาก TagInput ที่ผู้ใช้กรอกเอง
+ */
+function sanitizePromptValue(value: unknown): string {
+  return String(value ?? "")
+    .replace(/[\r\n\t\u2028\u2029]+/g, " ")
+    .replace(/[=•]/g, " ")
+    .replace(/\s+/g, " ")
+    .slice(0, MAX_FIELD_LEN)
+    .trim();
+}
+
 /**
  * Flat, Gemini-compatible Zod schema.
  * • macronutrients uses explicit scalar fields (protein_g / carbs_g / fat_g)
@@ -125,6 +140,93 @@ function validateRecipe(r: z.infer<typeof apiRecipeSchema>): string[] {
   if (r.healthSafetyNote.length < 15)
     issues.push("healthSafetyNote must be >= 15 chars");
 
+  return issues;
+}
+
+/* ── Hard safety gate: allergen / NCD / pantry ── */
+
+const UNSET_TAGS = [
+  "ไม่มี",
+  "ไม่มีโรค",
+  "ไม่มีโรคประจำตัว",
+  "ไม่มีอาหารที่แพ้",
+  "none",
+  "-",
+];
+
+function isUnsetTag(tag: string): boolean {
+  return tag.length === 0 || UNSET_TAGS.includes(tag.toLowerCase());
+}
+
+/** โรคประจำตัว → ส่วนผสมที่ห้ามเด็ดขาด (ตามกฎ NCD ใน SYSTEM_PROMPT) */
+const NCD_FORBIDDEN: Record<string, string[]> = {
+  เบาหวาน: ["น้ำตาล", "น้ำเชื่อม", "ไอซิ่ง", "น้ำผึ้ง", "ไซรัป"],
+  ความดัน: ["เบคอน", "แฮม", "ไส้กรอก", "กุนเชียง", "ผงชูรส", "ซอสปรุงรส"],
+  ไขมัน: ["กะทิ", "น้ำมันปาล์ม", "น้ำมันหมู", "เนยขาว"],
+  ไต: ["ผงชูรส", "ซอสปรุงรส"],
+  หัวใจ: ["กะทิ", "เบคอน", "ไส้กรอก", "น้ำมันปาล์ม"],
+};
+
+function validateAllergens(
+  r: z.infer<typeof apiRecipeSchema>,
+  avoidTags: string[],
+): string[] {
+  const issues: string[] = [];
+  const targets = [...r.ingredients, ...r.allergenWarnings, r.recipeName];
+  for (const tag of avoidTags) {
+    if (isUnsetTag(tag)) continue;
+    const hit = targets.find((t) => t.includes(tag));
+    if (hit) issues.push(`พบ "${tag}" ที่ห้ามใช้ในสูตร: "${hit}"`);
+  }
+  return issues;
+}
+
+function validateNcd(
+  r: z.infer<typeof apiRecipeSchema>,
+  healthTags: string[],
+): string[] {
+  const issues: string[] = [];
+  for (const tag of healthTags) {
+    if (isUnsetTag(tag)) continue;
+    const condition = Object.keys(NCD_FORBIDDEN).find((k) => tag.includes(k));
+    if (!condition) continue;
+    for (const banned of NCD_FORBIDDEN[condition]) {
+      const hit = r.ingredients.find((ing) => ing.includes(banned));
+      if (hit)
+        issues.push(`โรค "${tag}" ห้าม "${banned}" แต่พบในสูตร: "${hit}"`);
+    }
+  }
+  return issues;
+}
+
+function validatePantryMatch(
+  recipeIngredients: string[],
+  allowedItems: string[],
+): string[] {
+  const issues: string[] = [];
+  if (!allowedItems || allowedItems.length === 0) return issues;
+
+  // รายการเครื่องปรุงพื้นฐานที่อนุญาตให้มีได้
+  const basicStaples = [
+    "น้ำ",
+    "น้ำมัน",
+    "เกลือ",
+    "พริกไทย",
+    "ซีอิ๊ว",
+    "ซอส",
+    "น้ำปลา",
+    "กระเทียม",
+    "พริก",
+  ];
+
+  for (const ing of recipeIngredients) {
+    const isAllowed = allowedItems.some((item) => ing.includes(item));
+    const isStaple = basicStaples.some((staple) => ing.includes(staple));
+
+    if (!isAllowed && !isStaple) {
+      issues.push(`Found unapproved added ingredient: "${ing}"`);
+    }
+  }
   return issues;
 }
 
@@ -280,33 +382,35 @@ export async function POST(req: Request) {
     const prepLabel = pantry.prepTime
       ? prepTimeIdToLabel[pantry.prepTime]
       : "เวลาปานกลาง";
-    const dietLabel =
-      dietLabelMap[profile.diet || "none"] || profile.diet || "ไม่กำหนด";
+    const dietLabel = sanitizePromptValue(
+      dietLabelMap[profile.diet || "none"] || profile.diet || "ไม่กำหนด",
+    );
+    const healthTags = (profile.health || []).map(sanitizePromptValue).filter(Boolean);
+    const avoidTags = (profile.avoid || []).map(sanitizePromptValue).filter(Boolean);
+    const pantryTags = (pantry.items || []).map(sanitizePromptValue).filter(Boolean);
 
     const filters: string[] = [mealLabel, prepLabel];
     if (profile.diet && profile.diet !== "none")
       filters.push("สไตล์: " + dietLabel);
-    profile.health?.forEach((h) => filters.push("สุขภาพ: " + h));
-    profile.avoid?.forEach((a) => filters.push("ห้าม: " + a));
+    healthTags.forEach((h) => filters.push("สุขภาพ: " + h));
+    avoidTags.forEach((a) => filters.push("ห้าม: " + a));
 
     const healthLine =
-      profile.health?.length && profile.health.join(", ") !== "ไม่มี"
-        ? profile.health.join(", ")
+      healthTags.length && healthTags.join(", ") !== "ไม่มี"
+        ? healthTags.join(", ")
         : "สุขภาพทั่วไป";
-    const avoidLine = profile.avoid?.length
-      ? profile.avoid.join(", ")
-      : "ไม่มี";
-    const pantryLine = pantry.items?.length
-      ? pantry.items.join(", ")
+    const avoidLine = avoidTags.length ? avoidTags.join(", ") : "ไม่มี";
+    const pantryLine = pantryTags.length
+      ? pantryTags.join(", ")
       : "ไม่มี (หากไม่มีวัตถุดิบ ให้แจ้งเตือน หรือใช้เฉพาะเครื่องปรุงพื้นฐาน)";
 
     const userPrompt = [
       "=== โปรไฟล์ผู้ใช้ (User Profile) ===",
-      `• ช่วงอายุ: ${profile.age} ปี`,
-      `• เพศ: ${profile.gender}`,
-      `• ส่วนสูง: ${profile.height} ซม.`,
-      `• น้ำหนักตัว: ${profile.weight} กก.`,
-      `• ระดับกิจกรรม: ${profile.activity}`,
+      `• ช่วงอายุ: ${sanitizePromptValue(profile.age)} ปี`,
+      `• เพศ: ${sanitizePromptValue(profile.gender)}`,
+      `• ส่วนสูง: ${sanitizePromptValue(profile.height)} ซม.`,
+      `• น้ำหนักตัว: ${sanitizePromptValue(profile.weight)} กก.`,
+      `• ระดับกิจกรรม: ${sanitizePromptValue(profile.activity)}`,
       `• รูปแบบการกิน (Diet Style): ${dietLabel}`,
       `• โรคประจำตัว / NCD constraints: ${healthLine}`,
       `• อาหารที่แพ้ / ห้ามทานอย่างเด็ดขาด: ${avoidLine}`,
@@ -334,61 +438,42 @@ export async function POST(req: Request) {
     );
 
     const t0 = Date.now();
-    const modelName = process.env.GEMINI_MODEL || "gemini-1.5-flash-latest";
+    const modelName = process.env.GEMINI_MODEL || "gemini-3-flash-preview";
 
     const { object } = await generateObject({
       model: google(modelName),
-      system: SYSTEM_PROMPT,
+      instructions: SYSTEM_PROMPT,
       prompt: userPrompt,
       schema: recipeSchema,
     });
     const t1 = Date.now();
     const typed = object as z.infer<typeof recipeSchema>;
 
-    // ตรวจสอบว่ามีวัตถุดิบแปลกปลอมหลุดมาหรือไม่
-    function validatePantryMatch(
-      recipeIngredients: string[],
-      allowedItems: string[],
-    ): string[] {
-      const issues: string[] = [];
-      if (!allowedItems || allowedItems.length === 0) return issues;
-
-      // รายการเครื่องปรุงพื้นฐานที่อนุญาตให้มีได้
-      const basicStaples = [
-        "น้ำ",
-        "น้ำมัน",
-        "เกลือ",
-        "พริกไทย",
-        "ซีอิ๊ว",
-        "ซอส",
-        "น้ำปลา",
-        "กระเทียม",
-        "พริก",
-      ];
-
-      for (const ing of recipeIngredients) {
-        const isAllowed = allowedItems.some((item) => ing.includes(item));
-        const isStaple = basicStaples.some((staple) => ing.includes(staple));
-
-        if (!isAllowed && !isStaple) {
-          issues.push(`Found unapproved added ingredient: "${ing}"`);
-        }
-      }
-      return issues;
-    }
-
-    // Post-generation validation (replaces in-schema superRefine / refine)
-    const validationIssues: string[] = [];
+    // Hard safety gate — any violation blocks the recipe set (no 200 response)
+    const violations: string[] = [];
     for (let i = 0; i < typed.recipes.length; i++) {
-      const issues = validateRecipe(typed.recipes[i]);
+      const r = typed.recipes[i];
+      const issues = [
+        ...validateRecipe(r),
+        ...validateAllergens(r, avoidTags),
+        ...validateNcd(r, healthTags),
+        ...validatePantryMatch(r.ingredients, pantryTags),
+      ];
       for (const issue of issues) {
-        validationIssues.push(
-          `Recipe ${i + 1} (${typed.recipes[i].recipeName}): ${issue}`,
-        );
+        violations.push(`Recipe ${i + 1} (${r.recipeName}): ${issue}`);
       }
     }
-    if (validationIssues.length > 0) {
-      console.warn(`${STEP} Post-validation warnings:`, validationIssues);
+    if (violations.length > 0) {
+      console.warn(`${STEP} Safety gate blocked response:`, violations);
+      return NextResponse.json(
+        {
+          error:
+            "เมนูที่สร้างไม่ผ่านการตรวจสอบความปลอดภัย (สารก่อภูมิแพ้ / ข้อจำกัดโรคประจำตัว) กรุณาตรวจสอบข้อมูลโปรไฟล์ แล้วลองสร้างใหม่อีกครั้ง",
+          safety: true,
+          violations,
+        },
+        { status: 422 },
+      );
     }
 
     console.info(
