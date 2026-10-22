@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { generateObject } from "ai";
 import { google } from "@ai-sdk/google";
 import { z } from "zod";
+import { sanitizePromptValue } from "@/lib/prompt";
 import { consumeQuota, getQuota, isSupabaseConfigError } from "@/lib/supabase/data";
 import { SESSION_COOKIE, verifySession } from "@/lib/session";
 
@@ -11,21 +12,6 @@ export const dynamic = "force-dynamic";
 
 const QUANTITY_PATTERN =
   /(\d+(\.\d+)?\s*(ก\.?|กรัม|kg|กิโลกรัม|มล\.?|มิลลิลิตร|ลิตร|ช้อนโต๊ะ|ช้อนชา|ถ้วย|ฟอง|ชิ้น|ผล|ห่อ|กลีบ|แผ่น|หนีบ|ส่วน|ml|g|l|L|tsp|tbsp|cup))|(\d+\/\d+\s*(ถ้วย|ช้อนโต๊ะ|ช้อนชา))/i;
-
-const MAX_FIELD_LEN = 60;
-
-/**
- * ตัดอักขระควบคุม/ขึ้นบรรทัดใหม่ และอักขระที่ใช้ปลอมหัวข้อ prompt (= •)
- * แล้วจำกัดความยาว — กัน prompt injection จาก TagInput ที่ผู้ใช้กรอกเอง
- */
-function sanitizePromptValue(value: unknown): string {
-  return String(value ?? "")
-    .replace(/[\r\n\t\u2028\u2029]+/g, " ")
-    .replace(/[=•]/g, " ")
-    .replace(/\s+/g, " ")
-    .slice(0, MAX_FIELD_LEN)
-    .trim();
-}
 
 /**
  * Flat, Gemini-compatible Zod schema.
