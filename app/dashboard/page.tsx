@@ -42,6 +42,14 @@ const MEAL_TIME_MAP: Record<string, string> = {
   dinner: 'มื้อเย็น',
 }
 
+const FOCUS_RING =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2'
+
+const CARD = 'rounded-2xl border border-emerald-900/10 bg-[var(--surface)] shadow-sm'
+
+const ICON_TILE =
+  'grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[var(--accent)]/25 text-[var(--primary-dark)]'
+
 function formatThaiTimestamp(iso: string): string {
   try {
     const d = new Date(iso)
@@ -100,7 +108,7 @@ export default function DashboardPage() {
   if (loading || !user) {
     return (
       <div className="grid min-h-screen place-items-center bg-[var(--bg)]">
-        <div className="font-[var(--font-kanit)] text-lg text-[var(--muted)]">กำลังโหลด...</div>
+        <div className="font-[var(--font-kanit)] text-base text-muted-foreground">กำลังโหลด...</div>
       </div>
     )
   }
@@ -140,382 +148,217 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-[var(--bg)] pb-20">
       <div className="shell pt-9">
         <div className="mb-7">
-          <h1 className="text-[38px] font-semibold tracking-[-0.03em] text-[var(--foreground)]">
+          <h1 className="font-[var(--font-kanit)] text-3xl font-semibold text-foreground">
             สวัสดีค่ะ, {user.name.split(' ')[0]}
           </h1>
-          <p className="mt-2 text-[15px] text-[var(--muted)]">
+          <p className="mt-2 text-base text-muted-foreground">
             มาสร้างเมนูสุขภาพที่เหมาะกับคุณวันนี้กันเถอะ
           </p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 18, marginBottom: 22 }}>
-          <div className="glass-card" style={{ padding: 26 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div
-                  style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 12,
-                    background: 'linear-gradient(135deg, var(--color-card) 0%, var(--accent) 100%)',
-                    display: 'grid',
-                    placeItems: 'center',
-                    color: 'var(--primary-dark)',
-                  }}
-                >
-                  <Target style={{ width: 20, height: 20 }} />
-                </div>
-                <h2
-                  style={{
-                    fontFamily: 'var(--font-kanit)',
-                    margin: 0,
-                    fontSize: 18,
-                    color: 'var(--foreground)',
-                  }}
-                >
+        <div className="mb-5 grid grid-cols-1 gap-4 lg:grid-cols-[1.2fr_1fr]">
+          <div className={`${CARD} p-6`}>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <span className={ICON_TILE}>
+                  <Target className="h-5 w-5" />
+                </span>
+                <h2 className="font-[var(--font-kanit)] text-2xl font-semibold text-foreground">
                   สรุปเป้าหมายสุขภาพ
                 </h2>
               </div>
               <button
-                className="btn-ghost"
+                className={`btn-ghost text-sm ${FOCUS_RING}`}
                 onClick={() => router.push('/onboarding')}
-                style={{ fontSize: 12 }}
               >
-                <Sparkles style={{ width: 14, height: 14 }} />
+                <Sparkles className="h-4 w-4" />
                 ตั้งค่าใหม่
               </button>
             </div>
 
             {profile ? (
               <>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(3, 1fr)',
-                    gap: 12,
-                    marginBottom: 18,
-                  }}
-                >
-                  <div
-                    style={{
-                      padding: 16,
-                      borderRadius: 18,
-                      background: 'var(--bg)',
-                      border: '1px solid var(--border)',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--muted)', fontSize: 11, fontWeight: 500, marginBottom: 6 }}>
-                      <Activity style={{ width: 13, height: 13 }} />
+                <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div className="rounded-2xl border border-emerald-900/10 bg-[var(--bg)] p-4">
+                    <div className="flex min-h-5 items-center gap-1.5 text-sm font-medium text-muted-foreground">
+                      <Activity className="h-4 w-4" />
                       BMR
                     </div>
-                    <div style={{ fontFamily: 'var(--font-kanit)', fontSize: 26, fontWeight: 600, color: 'var(--foreground)' }}>
+                    <div className="mt-1 font-[var(--font-kanit)] text-2xl font-semibold text-foreground">
                       {profile.bmr?.toLocaleString() ?? '-'}
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--muted)' }}>กิโลแคลอรีพื้นฐาน</div>
+                    <div className="mt-0.5 text-sm text-muted-foreground">กิโลแคลอรีพื้นฐาน</div>
                   </div>
-                  <div
-                    style={{
-                      padding: 16,
-                      borderRadius: 18,
-                      background: 'var(--bg)',
-                      border: '1px solid var(--border)',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--muted)', fontSize: 11, fontWeight: 500, marginBottom: 6 }}>
-                      <Zap style={{ width: 13, height: 13 }} />
+                  <div className="rounded-2xl border border-emerald-900/10 bg-[var(--bg)] p-4">
+                    <div className="flex min-h-5 items-center gap-1.5 text-sm font-medium text-muted-foreground">
+                      <Zap className="h-4 w-4" />
                       TDEE
                     </div>
-                    <div style={{ fontFamily: 'var(--font-kanit)', fontSize: 26, fontWeight: 600, color: 'var(--foreground)' }}>
+                    <div className="mt-1 font-[var(--font-kanit)] text-2xl font-semibold text-foreground">
                       {profile.tdee?.toLocaleString() ?? '-'}
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--muted)' }}>กิโลแคลอรีต่อวัน</div>
+                    <div className="mt-0.5 text-sm text-muted-foreground">กิโลแคลอรีต่อวัน</div>
                   </div>
-                  <div
-                    style={{
-                      padding: 16,
-                      borderRadius: 18,
-                      background: 'linear-gradient(135deg, var(--color-card) 0%, var(--accent) 100%)',
-                      border: '1px solid rgba(119,136,115,0.2)',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--primary-dark)', fontSize: 11, fontWeight: 600, marginBottom: 6 }}>
-                      <Flame style={{ width: 13, height: 13 }} />
+                  <div className="rounded-2xl border border-emerald-900/10 bg-[var(--accent)]/25 p-4">
+                    <div className="flex min-h-5 items-center gap-1.5 text-sm font-semibold text-[var(--primary-dark)]">
+                      <Flame className="h-4 w-4" />
                       Target Calories
                     </div>
-                    <div style={{ fontFamily: 'var(--font-kanit)', fontSize: 26, fontWeight: 600, color: 'var(--ink-soft)' }}>
+                    <div className="mt-1 font-[var(--font-kanit)] text-2xl font-semibold text-[var(--ink-soft)]">
                       {profile.targetCalories?.toLocaleString() ?? (profile.tdee ? Math.round(profile.tdee * 0.9).toLocaleString() : '-')}
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--primary-dark)', opacity: 0.85 }}>เป้าหมายต่อมื้อ/วัน</div>
+                    <div className="mt-0.5 text-sm text-[var(--primary-dark)]">เป้าหมายต่อมื้อ/วัน</div>
                   </div>
                 </div>
 
-                <div
-                  style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: 8,
-                    padding: 14,
-                    borderRadius: 16,
-                    background: 'var(--bg)',
-                    border: '1px solid var(--border)',
-                  }}
-                >
-                  <span className="tag-pill" style={{ fontSize: 11 }}>
-                    อายุ {profile.age} ปี
-                  </span>
-                  <span className="tag-pill" style={{ fontSize: 11 }}>
+                <div className="flex flex-wrap gap-2 rounded-2xl border border-emerald-900/10 bg-[var(--bg)] p-3.5">
+                  <span className="tag-pill">อายุ {profile.age} ปี</span>
+                  <span className="tag-pill">
                     {profile.gender === 'male' ? 'ชาย' : profile.gender === 'female' ? 'หญิง' : 'ไม่ระบุ'}
                   </span>
-                  <span className="tag-pill" style={{ fontSize: 11 }}>
-                    ส่วนสูง {profile.height} ซม.
-                  </span>
-                  <span className="tag-pill" style={{ fontSize: 11 }}>
-                    น้ำหนัก {profile.weight} กก.
-                  </span>
+                  <span className="tag-pill">ส่วนสูง {profile.height} ซม.</span>
+                  <span className="tag-pill">น้ำหนัก {profile.weight} กก.</span>
                   {profile.diet && profile.diet !== 'none' && (
-                    <span className="tag-pill" style={{ fontSize: 11 }}>
-                      {profile.diet}
-                    </span>
+                    <span className="tag-pill">{profile.diet}</span>
                   )}
                   {profile.health.length > 0 &&
                     profile.health.slice(0, 3).map((h) => (
-                      <span key={h} className="tag-pill" style={{ fontSize: 11 }}>
+                      <span key={h} className="tag-pill">
                         {h}
                       </span>
                     ))}
                 </div>
               </>
             ) : (
-              <div
-                style={{
-                  padding: 22,
-                  borderRadius: 18,
-                  background: 'var(--bg)',
-                  border: '1px dashed var(--border)',
-                  textAlign: 'center',
-                }}
-              >
-                <div style={{ fontFamily: 'var(--font-kanit)', fontSize: 15, color: 'var(--foreground)', marginBottom: 4 }}>
+              <div className="rounded-2xl border border-dashed border-emerald-900/20 bg-[var(--bg)] p-6 text-center">
+                <div className="font-[var(--font-kanit)] text-base text-foreground">
                   ยังไม่ได้ตั้งค่าข้อมูลสุขภาพ
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 14 }}>
+                <div className="mt-1 mb-4 text-sm text-muted-foreground">
                   กรุณาตั้งค่าเพื่อให้ AI วางแผนเมนูที่เหมาะสมกับร่างกายคุณ
                 </div>
-                <button className="btn-primary" onClick={() => router.push('/onboarding')} style={{ padding: '10px 18px', fontSize: 13 }}>
-                  <Sparkles style={{ width: 14, height: 14 }} />
+                <button
+                  className={`btn-primary ${FOCUS_RING}`}
+                  onClick={() => router.push('/onboarding')}
+                >
+                  <Sparkles className="h-4 w-4" />
                   เริ่มตั้งค่าโปรไฟล์
                 </button>
               </div>
             )}
           </div>
 
-          <div className="glass-card" style={{ padding: 26 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div
-                  style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 12,
-                    background: 'linear-gradient(135deg, var(--color-card) 0%, var(--accent) 100%)',
-                    display: 'grid',
-                    placeItems: 'center',
-                    color: 'var(--primary-dark)',
-                  }}
-                >
-                  <Award style={{ width: 20, height: 20 }} />
-                </div>
-                <h2
-                  style={{
-                    fontFamily: 'var(--font-kanit)',
-                    margin: 0,
-                    fontSize: 18,
-                    color: 'var(--foreground)',
-                  }}
-                >
-                  โควต้าวันนี้
-                </h2>
-              </div>
+          <div className={`${CARD} p-6`}>
+            <div className="mb-4 flex items-center gap-2.5">
+              <span className={ICON_TILE}>
+                <Award className="h-5 w-5" />
+              </span>
+              <h2 className="font-[var(--font-kanit)] text-2xl font-semibold text-foreground">
+                โควต้าวันนี้
+              </h2>
             </div>
 
-            <div style={{ textAlign: 'center', padding: '12px 0 18px' }}>
-              <div className="quota-badge" style={{ display: 'inline-flex' }}>
-                <Sparkles style={{ width: 16, height: 16 }} />
+            <div className="py-3 text-center">
+              <span className="quota-badge">
+                <Sparkles className="h-4 w-4" />
                 โควต้าเจนเมนูวันนี้เหลือ {remaining}/{quota.max} ครั้ง
-              </div>
+              </span>
             </div>
 
-            <div
-              style={{
-                display: 'flex',
-                gap: 10,
-                marginBottom: 20,
-              }}
-            >
+            <div className="mb-5 flex gap-2.5">
               {Array.from({ length: quota.max }).map((_, i) => (
                 <div
                   key={i}
-                  style={{
-                    flex: 1,
-                    height: 10,
-                    borderRadius: 999,
-                    background: i < quota.used ? 'var(--card)' : 'linear-gradient(90deg, var(--accent) 0%, var(--brand) 100%)',
-                    opacity: i < quota.used ? 0.35 : 1,
-                    transition: 'all 0.3s ease',
-                  }}
+                  className={`h-2.5 flex-1 rounded-full transition-all duration-300 ${
+                    i < quota.used
+                      ? 'bg-[var(--card)] opacity-35'
+                      : 'bg-gradient-to-r from-[var(--accent)] to-[var(--brand)]'
+                  }`}
                 />
               ))}
             </div>
 
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                fontSize: 11,
-                color: 'var(--muted)',
-                marginBottom: 22,
-              }}
-            >
+            <div className="mb-5 flex justify-between text-sm text-muted-foreground">
               <span>ใช้ไปแล้ว {quota.used} ครั้ง</span>
               <span>รีเซ็ตใหม่ในวันพรุ่งนี้</span>
             </div>
 
             <button
-              className="btn-primary"
-              style={{ width: '100%' }}
+              className={`btn-primary w-full ${FOCUS_RING}`}
               disabled={remaining <= 0}
               onClick={() => router.push(profile ? '/pantry' : '/onboarding')}
             >
-              <Plus style={{ width: 16, height: 16 }} />
+              <Plus className="h-4 w-4" />
               สร้างเมนูอาหารใหม่
             </button>
 
             {remaining <= 0 && (
-              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 10, textAlign: 'center' }}>
+              <div className="mt-2.5 text-center text-sm text-muted-foreground">
                 โควต้าวันนี้หมดแล้ว มาเจนเมนูใหม่พรุ่งนี้นะคะ
               </div>
             )}
           </div>
         </div>
 
-        <div className="glass-card" style={{ padding: 26 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 12,
-                  background: 'rgba(161,188,152,0.25)',
-                  display: 'grid',
-                  placeItems: 'center',
-                  color: 'var(--primary)',
-                }}
-              >
-                <History style={{ width: 20, height: 20 }} />
-              </div>
-              <h2
-                style={{
-                  fontFamily: 'var(--font-kanit)',
-                  margin: 0,
-                  fontSize: 18,
-                  color: 'var(--foreground)',
-                }}
-              >
+        <div className={`${CARD} p-6`}>
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className={ICON_TILE}>
+                <History className="h-5 w-5" />
+              </span>
+              <h2 className="font-[var(--font-kanit)] text-2xl font-semibold text-foreground">
                 ประวัติบันทึกเมนู
               </h2>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '6px 12px',
-                  borderRadius: 999,
-                  background: savedVia === 'supabase' ? 'rgba(161,188,152,0.2)' : 'rgba(210,220,182,0.4)',
-                  color: savedVia === 'supabase' ? 'var(--primary-dark)' : 'var(--muted)',
-                  fontSize: 11.5,
-                  fontWeight: 600,
-                }}
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${
+                  savedVia === 'supabase'
+                    ? 'bg-[var(--accent)]/25 text-[var(--primary-dark)]'
+                    : 'bg-[var(--color-card)]/50 text-muted-foreground'
+                }`}
               >
-                {savedVia === 'supabase' ? (
-                  <Database style={{ width: 13, height: 13 }} />
-                ) : savedVia === 'fallback' ? (
-                  <Server style={{ width: 13, height: 13 }} />
+                {savedVia === 'fallback' ? (
+                  <Server className="h-3.5 w-3.5" />
                 ) : (
-                  <Database style={{ width: 13, height: 13 }} />
+                  <Database className="h-3.5 w-3.5" />
                 )}
                 {savedVia === 'supabase'
                   ? 'ฐานข้อมูล Supabase'
                   : savedVia === 'fallback'
                   ? 'Local Storage'
                   : 'กำลังโหลด...'}
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-                {saved.length} รายการ
-              </div>
+              </span>
+              <div className="text-sm text-muted-foreground">{saved.length} รายการ</div>
             </div>
           </div>
 
           {savedLoading ? (
-            <div
-              style={{
-                padding: 54,
-                borderRadius: 22,
-                background: 'var(--bg)',
-                border: '1px dashed var(--border)',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 10,
-                color: 'var(--muted)',
-                fontSize: 13,
-              }}
-            >
-              <Loader2 style={{ width: 22, height: 22, color: 'var(--primary)', animation: 'spin 1s linear infinite' }} />
+            <div className="flex flex-col items-center gap-2.5 rounded-2xl border border-dashed border-emerald-900/20 bg-[var(--bg)] p-12 text-base text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin text-[var(--primary)]" />
               กำลังโหลดประวัติบันทึกเมนู...
             </div>
           ) : saved.length === 0 ? (
-            <div
-              style={{
-                padding: 54,
-                borderRadius: 22,
-                background: 'var(--bg)',
-                border: '1px dashed var(--border)',
-                textAlign: 'center',
-              }}
-            >
-              <div
-                style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: 18,
-                  background: 'rgba(161,188,152,0.2)',
-                  display: 'grid',
-                  placeItems: 'center',
-                  margin: '0 auto 16px',
-                  color: 'var(--primary)',
-                }}
-              >
-                <History style={{ width: 26, height: 26 }} />
-              </div>
-              <div style={{ fontFamily: 'var(--font-kanit)', fontSize: 16, color: 'var(--foreground)', marginBottom: 6 }}>
+            <div className="rounded-2xl border border-dashed border-emerald-900/20 bg-[var(--bg)] p-12 text-center">
+              <span className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-[var(--accent)]/25 text-[var(--primary)]">
+                <History className="h-6 w-6" />
+              </span>
+              <div className="mb-1.5 font-[var(--font-kanit)] text-base text-foreground">
                 ยังไม่มีเมนูที่บันทึกไว้
               </div>
-              <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 18 }}>
+              <div className="mb-5 text-sm text-muted-foreground">
                 สร้างเมนูแรกของคุณแล้วกดบันทึกเมื่อพบเมนูที่ชอบนะคะ
               </div>
               <button
-                className="btn-secondary"
+                className={`btn-secondary ${FOCUS_RING}`}
                 onClick={() => router.push(profile ? '/pantry' : '/onboarding')}
               >
-                <Plus style={{ width: 14, height: 14 }} />
+                <Plus className="h-4 w-4" />
                 สร้างเมนูอาหารใหม่
               </button>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {saved.map((meal, idx) => {
                 const Icon = RANK_ICONS[meal.recipe.rankNum] || Award
                 const expanded = openCard === idx
@@ -523,172 +366,92 @@ export default function DashboardPage() {
                 return (
                   <div
                     key={meal.id}
-                    style={{
-                      padding: 18,
-                      borderRadius: 22,
-                      background: 'var(--color-card-bg)',
-                      border: '1px solid var(--border)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 10,
-                      position: 'relative',
-                      transition: 'all 0.2s ease',
-                      minHeight: expanded ? 'auto' : 320,
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-2px)'
-                      e.currentTarget.style.boxShadow = '0 12px 30px rgba(119,136,115,0.1)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)'
-                      e.currentTarget.style.boxShadow = 'none'
-                    }}
+                    className={`group relative flex flex-col gap-2.5 rounded-2xl border border-emerald-900/10 bg-[var(--surface)] p-4.5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${
+                      expanded ? '' : 'min-h-80'
+                    }`}
                   >
                     <button
                       onClick={() => onDeleteSaved(meal.id)}
                       disabled={isDeleting}
-                      style={{
-                        position: 'absolute',
-                        top: 12,
-                        right: 12,
-                        width: 28,
-                        height: 28,
-                        borderRadius: '50%',
-                        background: isDeleting ? 'rgba(220,38,38,0.18)' : 'rgba(220,38,38,0.08)',
-                        color: 'var(--color-danger)',
-                        border: 'none',
-                        display: 'grid',
-                        placeItems: 'center',
-                        cursor: isDeleting ? 'wait' : 'pointer',
-                        opacity: expanded ? 1 : 0,
-                        transition: 'opacity 0.2s ease',
-                        zIndex: 2,
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-                      onMouseLeave={(e) => (e.currentTarget.style.opacity = expanded ? '1' : '0.7')}
+                      className={`absolute top-3 right-3 z-[2] grid h-7 w-7 place-items-center rounded-full text-[var(--color-danger)] transition-all duration-300 disabled:cursor-wait ${FOCUS_RING} ${
+                        isDeleting ? 'bg-[var(--color-danger)]/20' : 'bg-[var(--color-danger)]/10'
+                      } ${expanded ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100'}`}
                       aria-label="ลบ"
                     >
                       {isDeleting ? (
-                        <Loader2 style={{ width: 13, height: 13, animation: 'spin 0.8s linear infinite' }} />
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       ) : (
-                        <Trash2 style={{ width: 13, height: 13 }} />
+                        <Trash2 className="h-3.5 w-3.5" />
                       )}
                     </button>
 
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <div className="flex items-center justify-between gap-2">
                       <div className={TONE_CLASS[meal.recipe.tone] || 'rank-badge-sage'}>
-                        <Icon style={{ width: 11, height: 11 }} />
+                        <Icon className="h-3 w-3" />
                         {meal.recipe.rank}
                       </div>
-                      <div style={{ fontSize: 10.5, color: 'var(--muted)', textAlign: 'right', lineHeight: 1.35 }}>
-                        <div style={{ fontWeight: 500 }}>
+                      <div className="pr-8 text-right text-xs leading-snug text-muted-foreground">
+                        <div className="font-medium">
                           {MEAL_TIME_MAP[meal.mealTime] || meal.mealTime} · {meal.date}
                         </div>
                         <div>{formatThaiTimestamp(meal.savedAt)}</div>
                       </div>
                     </div>
 
-                    <h3
-                      style={{
-                        fontFamily: 'var(--font-kanit)',
-                        margin: 0,
-                        fontSize: 17,
-                        fontWeight: 600,
-                        color: 'var(--foreground)',
-                        lineHeight: 1.3,
-                      }}
-                    >
+                    <h3 className="font-[var(--font-kanit)] text-base leading-snug font-semibold text-foreground">
                       {meal.recipe.title}
                     </h3>
 
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, fontSize: 11, color: 'var(--muted)' }}>
-                      <span className="tag-pill" style={{ fontSize: 11, padding: '4px 10px' }}>
-                        <Flame style={{ width: 10, height: 10 }} /> {meal.recipe.kcal} kcal
+                    <div className="flex flex-wrap gap-1.5">
+                      <span className="tag-pill">
+                        <Flame className="h-3 w-3" /> {meal.recipe.kcal} kcal
                       </span>
-                      <span className="tag-pill" style={{ fontSize: 11, padding: '4px 10px' }}>
-                        <Clock style={{ width: 10, height: 10 }} /> {meal.recipe.time}
+                      <span className="tag-pill">
+                        <Clock className="h-3 w-3" /> {meal.recipe.time}
                       </span>
                     </div>
 
-                    <div
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(3, 1fr)',
-                        gap: 6,
-                        marginTop: 4,
-                        paddingTop: 12,
-                        borderTop: '1px solid var(--border)',
-                      }}
-                    >
-                      <div className="bg-[var(--bg)] rounded-2xl p-3 text-center">
-                        <b style={{ fontSize: 14 }}>{meal.recipe.macros[0]}</b>
-                                              <div style={{ fontSize: 12 }}>โปรตีน</div>
+                    <div className="mt-1 grid grid-cols-3 gap-1.5 border-t border-emerald-900/10 pt-3">
+                      <div className="rounded-2xl bg-[var(--bg)] p-3 text-center">
+                        <b className="text-sm font-semibold text-foreground">{meal.recipe.macros[0]}</b>
+                        <div className="text-xs text-muted-foreground">โปรตีน</div>
                       </div>
-                                            <div className="bg-[var(--bg)] rounded-2xl p-3 text-center">
-                        <b style={{ fontSize: 14 }}>{meal.recipe.macros[1]}</b>
-                                              <div style={{ fontSize: 12 }}>คาร์โบ</div>
+                      <div className="rounded-2xl bg-[var(--bg)] p-3 text-center">
+                        <b className="text-sm font-semibold text-foreground">{meal.recipe.macros[1]}</b>
+                        <div className="text-xs text-muted-foreground">คาร์โบ</div>
                       </div>
-                                            <div className="bg-[var(--bg)] rounded-2xl p-3 text-center">
-                        <b style={{ fontSize: 14 }}>{meal.recipe.macros[2]}</b>
-                                              <div style={{ fontSize: 12 }}>ไขมัน</div>
+                      <div className="rounded-2xl bg-[var(--bg)] p-3 text-center">
+                        <b className="text-sm font-semibold text-foreground">{meal.recipe.macros[2]}</b>
+                        <div className="text-xs text-muted-foreground">ไขมัน</div>
                       </div>
                     </div>
 
-                    <div style={{ marginTop: expanded ? 0 : 'auto', paddingTop: expanded ? 10 : 0 }}>
-                      <div
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 600,
-                          fontFamily: 'var(--font-kanit)',
-                          color: 'var(--foreground)',
-                          marginBottom: expanded ? 8 : 0,
-                        }}
-                      >
+                    <div className={expanded ? 'pt-2.5' : 'mt-auto'}>
+                      <div className="mb-2 font-[var(--font-kanit)] text-sm font-semibold text-foreground">
                         ส่วนผสม
                       </div>
-                      {!expanded && (
-                                              <div className="grid grid-cols-2 gap-2.5 text-sm text-[var(--foreground)]" style={{ marginTop: 6 }}>
-                          {meal.recipe.ingredients.slice(0, 3).map((ing, j) => (
-                                                  <div key={j}>• {ing}</div>
-                          ))}
-                          {meal.recipe.ingredients.length > 3 && (
-                            <div style={{ color: 'var(--primary)' }}>+{meal.recipe.ingredients.length - 3}</div>
-                          )}
-                        </div>
-                      )}
-                      {expanded && (
-                                              <div className="grid grid-cols-2 gap-2.5 text-sm text-[var(--foreground)]">
-                          {meal.recipe.ingredients.map((ing, j) => (
-                                                  <div key={j}>• {ing}</div>
-                          ))}
-                        </div>
-                      )}
+                      <div className="grid grid-cols-2 gap-2.5 text-sm text-foreground">
+                        {(expanded ? meal.recipe.ingredients : meal.recipe.ingredients.slice(0, 3)).map((ing, j) => (
+                          <div key={j}>• {ing}</div>
+                        ))}
+                        {!expanded && meal.recipe.ingredients.length > 3 && (
+                          <div className="text-[var(--primary)]">
+                            +{meal.recipe.ingredients.length - 3}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <button
                       type="button"
                       onClick={() => toggleCard(idx)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        width: '100%',
-                        padding: '10px 0 0',
-                        marginTop: 6,
-                        background: 'none',
-                        border: 'none',
-                        borderTop: '1px solid var(--border)',
-                        color: 'var(--primary)',
-                        fontSize: 11.5,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
+                      className={`mt-1.5 flex w-full items-center justify-between border-t border-emerald-900/10 pt-2.5 text-sm font-semibold text-[var(--primary)] ${FOCUS_RING}`}
                     >
                       <span>{expanded ? 'ย่อรายการ' : 'ดูส่วนผสมและข้อมูลเต็ม'}</span>
                       {expanded ? (
-                        <ChevronUp style={{ width: 14, height: 14 }} />
+                        <ChevronUp className="h-4 w-4" />
                       ) : (
-                        <ChevronDown style={{ width: 14, height: 14 }} />
+                        <ChevronDown className="h-4 w-4" />
                       )}
                     </button>
                   </div>
