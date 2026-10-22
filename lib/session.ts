@@ -11,7 +11,18 @@ export const SESSION_MAX_AGE = 60 * 60 * 24 * 30 // 30 days
 
 const SECRET = process.env.SESSION_SECRET || 'nutrigenie-dev-secret'
 
-if (!process.env.SESSION_SECRET && process.env.NODE_ENV === 'production') {
+let warnedMissingSecret = false
+
+/**
+ * Warn once, on first real use. Doing this at import time also fired during
+ * `next build` (production NODE_ENV, no sessions involved) and spammed one
+ * warning per build worker.
+ */
+function warnIfSecretMissing(): void {
+  if (warnedMissingSecret || process.env.SESSION_SECRET || process.env.NODE_ENV !== 'production') {
+    return
+  }
+  warnedMissingSecret = true
   console.warn('[session] SESSION_SECRET is not set — using insecure dev key. Set it in production.')
 }
 
@@ -47,6 +58,7 @@ function safeEqual(a: string, b: string): boolean {
 
 /** Create a signed session token for `email`. */
 export async function signSession(email: string): Promise<string> {
+  warnIfSecretMissing()
   const payload = b64urlEncode(
     new TextEncoder().encode(
       JSON.stringify({ e: email.trim().toLowerCase(), x: Date.now() + SESSION_MAX_AGE * 1000 }),
@@ -58,6 +70,7 @@ export async function signSession(email: string): Promise<string> {
 /** Verify a signed session token, returning the email or null. */
 export async function verifySession(token: string | undefined | null): Promise<string | null> {
   if (!token) return null
+  warnIfSecretMissing()
   const dot = token.indexOf('.')
   if (dot <= 0) return null
   const payload = token.slice(0, dot)

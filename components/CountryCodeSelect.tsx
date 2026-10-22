@@ -313,7 +313,7 @@ export function CountryCodeSelect({ value, onChange, id }: CountryCodeSelectProp
 }
 
 function flagGradientFor(code: string): string {
-  const palette: Record<string, [string, string]> = {
+  const palette: Record<string, string[]> = {
     TH: ['#EF3340 0 33%', '#FFFFFF 33% 66%, #EF3340 66%'],
     SG: ['#FFFFFF 0 50%', '#ED2939 50%'],
     MY: ['#CC0001 0 14%', '#FFFFFF 14% 28%, #CC0001 28% 42%, #FFFFFF 42% 56%, #CC0001 56% 70%, #FFFFFF 70% 84%, #010066 84%'],

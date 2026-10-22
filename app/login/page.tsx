@@ -8,7 +8,7 @@ import { useAuth } from '@/components/AuthProvider'
 import { OtpModal } from '@/components/OtpModal'
 
 function LoginInner() {
-  const { login, loading, requestForgotOtp, confirmForgotAndReset, otp, otpPurpose, otpTargetEmail, cancelOtpFlow } =
+  const { login, requestForgotOtp, confirmForgotAndReset, otp, otpPurpose, otpTargetEmail, cancelOtpFlow } =
     useAuth()
   const router = useRouter()
   const search = useSearchParams()

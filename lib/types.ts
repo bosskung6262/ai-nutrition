@@ -80,6 +80,7 @@ export interface ApiRecipe {
   ingredients: string[]
   allergenWarnings: string[]
   cookingSteps: string[]
+  shortSteps?: string[]
   healthSafetyNote: string
 }
 

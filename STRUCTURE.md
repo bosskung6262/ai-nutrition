@@ -4,7 +4,7 @@ AI Nutrition - An intelligent meal recommendation system powered by AI
 
 ## Overview
 
-This is a Next.js 15+ full-stack application for generating personalized nutritional meal recommendations. The app uses TypeScript, React 19+, and integrates with Supabase for backend services.
+This is a Next.js 16 (App Router) full-stack application for generating personalized nutritional meal recommendations. The app uses TypeScript and React 19, and persists server-side data (profiles, saved meals, daily quota) in Supabase Postgres. Authentication is a signed, httpOnly session cookie minted by `/api/auth/session` and verified in `proxy.ts`.
 
 ---
 
@@ -20,15 +20,17 @@ This is a Next.js 15+ full-stack application for generating personalized nutriti
 ├── node_modules/                 # Dependencies (pnpm)
 ├── next.config.mjs               # Next.js configuration
 ├── tsconfig.json                 # TypeScript configuration
-├── tailwind.config.ts            # Tailwind CSS configuration (if present)
 ├── postcss.config.mjs            # PostCSS configuration
 ├── pnpm-workspace.yaml           # pnpm workspace configuration
 ├── pnpm-lock.yaml                # pnpm lock file
 ├── package.json                  # Project dependencies
 ├── components.json               # Component configuration (shadcn/ui)
-├── proxy.ts                      # API proxy configuration
+├── proxy.ts                      # Auth proxy (session gate, replaces middleware.ts)
+├── .traerules                    # Project coding rules for AI agents
 ├── AGENTS.md                     # AI agent instructions (Next.js)
 ├── CLAUDE.md                     # Claude customization instructions
+├── STRUCTURE.md                  # This document
+├── projectstructure.md           # Condensed structure reference
 └── README.md                     # Project documentation
 ```
 
@@ -49,21 +51,25 @@ Application pages and API routes using Next.js 15 App Router.
 | `/pantry` | Ingredient selection and meal preference input |
 | `/recipes` | Generated recipe results display |
 | `/dashboard` | User dashboard with saved meals and history |
-| `/layout.tsx` | Root layout wrapper for all pages |
+
+Root layout and App Router special files: `layout.tsx`, `error.tsx`, `loading.tsx`, `not-found.tsx`.
 
 ### API Routes
 
+All routes below require a valid session cookie (enforced by `proxy.ts`) and use the Supabase service-role client through `lib/supabase/data.ts`.
+
 | Route | Method | Purpose |
 |-------|--------|---------|
-| `/api/generate-recipe/` | POST | AI-powered recipe generation endpoint |
-| `/api/profile/` | GET/POST/PUT | User profile management |
-| `/api/saved-meals/` | GET/POST | Fetch and save user's meal preferences |
+| `/api/auth/session/` | POST/DELETE | Mint or clear the signed httpOnly session cookie |
+| `/api/generate-recipe/` | POST | AI-powered recipe generation (decrements the daily quota) |
+| `/api/profile/` | GET/POST | Read / upsert the user's profile in `profiles` |
+| `/api/saved-meals/` | GET/POST/DELETE | List, save, and delete rows in `saved_meals` |
+| `/api/quota/` | GET | Current daily generation quota from `quota` |
 
 ### Assets
 
 - `globals.css` - Global styles (Tailwind CSS)
 - `landing.css` - Landing page specific styles
-- `next-env.d.ts` - Next.js TypeScript environment types
 
 ---
 
@@ -76,9 +82,7 @@ Reusable UI components for the application.
 | Component | Purpose |
 |-----------|---------|
 | `AuthProvider.tsx` | React Context provider for user authentication state |
-| `Navbar.tsx` | Generic navigation bar |
-| `LandingNavbar.tsx` | Navigation for landing page |
-| `DashboardNavbar.tsx` | Navigation for dashboard section |
+| `Navbar.tsx` | Shared navigation bar |
 
 ### Feature Components
 
@@ -86,9 +90,8 @@ Reusable UI components for the application.
 |-----------|---------|
 | `RecipeCard.tsx` | Card component displaying a single recipe |
 | `RecipeInstructionModal.tsx` | Modal showing detailed cooking instructions |
-| `ShareModal.tsx` | Modal for sharing recipes (social/email) |
+| `ShareModal.tsx` | Modal for sharing recipes as a card |
 | `TagInput.tsx` | Input component for ingredient/filter tags |
-| `nutrition.tsx` | Nutritional information display component |
 
 ### Modals & Utilities
 
@@ -97,10 +100,6 @@ Reusable UI components for the application.
 | `LoadingModal.tsx` | Full-screen loading indicator |
 | `OtpModal.tsx` | One-time password (OTP) verification modal |
 | `CountryCodeSelect.tsx` | Country/phone code selector for authentication |
-
-### UI Subdirectory
-
-- `/ui/` - Likely contains shadcn/ui component library components (auto-generated)
 
 ---
 
@@ -112,18 +111,17 @@ Shared utilities, type definitions, and backend logic.
 
 | File | Purpose |
 |------|---------|
-| `store.ts` | Client-side state management (localStorage) |
+| `store.ts` | Client-side state management (localStorage mirror of auth, profile, pantry, results) |
+| `session.ts` | Signed session cookie helpers (sign / verify, Edge-safe) |
 | `types.ts` | TypeScript type definitions for recipes, users, meals |
-| `utils.ts` | Helper utility functions |
+| `use-modal-a11y.ts` | Focus trap / Esc handling hook shared by modals |
 
 ### Supabase Subdirectory
 
 | File | Purpose |
 |------|---------|
-| `client.ts` | Supabase client initialization (browser) |
-| `server.ts` | Supabase server client (Server Components/API routes) |
-| `data.ts` | Server-side persistence layer (profiles / saved_meals / quota) |
-| `middleware.ts` | Authentication middleware for Next.js |
+| `data.ts` | Server-side persistence layer (profiles / saved_meals / quota + row types) |
+| `server.ts` | Supabase service-role client factory for API routes |
 
 ---
 
@@ -154,7 +152,7 @@ Static files served directly by the web server:
 ### Customization
 
 - `components.json` - Shadcn/ui component library configuration
-- `proxy.ts` - API routing/proxy configuration
+- `proxy.ts` - Auth proxy that gates protected pages and API routes
 - `AGENTS.md` - Next.js version-specific agent instructions
 - `CLAUDE.md` - Claude AI customization
 
@@ -162,11 +160,12 @@ Static files served directly by the web server:
 
 ## Key Technologies
 
-- **Frontend Framework**: Next.js 15+ with App Router
+- **Frontend Framework**: Next.js 16 with App Router
 - **Language**: TypeScript
-- **UI Components**: Shadcn/ui, Tailwind CSS, Lucide icons
-- **State Management**: React Context + localStorage
-- **Backend**: Supabase (PostgreSQL, Auth, Real-time)
+- **UI Components**: Tailwind CSS, Lucide icons, shadcn base styles
+- **State Management**: React Context + localStorage (client mirror)
+- **Backend**: Supabase Postgres via service-role client (server-only)
+- **AI**: AI SDK + Google Gemini (`/api/generate-recipe`)
 - **HTTP Client**: Fetch API
 - **Package Manager**: pnpm
 - **Styling**: Tailwind CSS + PostCSS
@@ -177,19 +176,19 @@ Static files served directly by the web server:
 
 ### User Journey
 
-1. **Authentication** → `/login` or `/signup` → `AuthProvider` validates session
-2. **Onboarding** → `/onboarding` → Collect dietary preferences
+1. **Authentication** → `/login` or `/signup` → OTP flow in `AuthProvider`, then `/api/auth/session` mints the signed cookie
+2. **Onboarding** → `/onboarding` → Collect dietary preferences, `POST /api/profile`
 3. **Pantry Setup** → `/pantry` → Select ingredients, set meal goals
-4. **Recipe Generation** → API `/api/generate-recipe/` → AI generates meals
-5. **View Recipes** → `/recipes` → Display 3 recommended recipes
-6. **Save Meals** → API `/api/saved-meals/` → Store to Supabase
-7. **Dashboard** → `/dashboard` → View saved meals and history
+4. **Recipe Generation** → `POST /api/generate-recipe` → quota pre-check, then AI generates meals
+5. **View Recipes** → `/recipes` → Display 3 recommended recipes (`/api/quota` reflects the decrement)
+6. **Save Meals** → `POST /api/saved-meals` → Insert into Supabase `saved_meals`
+7. **Dashboard** → `/dashboard` → `GET /api/saved-meals` for saved meals and history
 
 ### State Management
 
-- **Client State**: `store.ts` (localStorage for offline support)
-- **Server State**: Supabase (user profiles, saved meals, history)
-- **Auth State**: `AuthProvider` context + Supabase Auth
+- **Client State**: `store.ts` (localStorage cache of auth/profile/pantry/results for offline reading)
+- **Server State**: Supabase tables `profiles`, `saved_meals`, `quota` — the single source of truth
+- **Auth State**: `AuthProvider` context + signed httpOnly session cookie verified in `proxy.ts`
 
 ---
 
@@ -209,15 +208,15 @@ Static files served directly by the web server:
 ✅ Nutritional goal setting  
 ✅ Recipe saving and bookmarking  
 ✅ Recipe sharing functionality  
-✅ Daily quota system (3 generations/day)  
-✅ Offline support (localStorage)  
+✅ Daily quota system (3 generations/day, enforced server-side in Supabase)  
+✅ Client-side localStorage cache for offline reading  
 ✅ Responsive design  
 
 ---
 
 ## Development Commands
 
-See `package.json` for available scripts (dev, build, start, lint, etc.)
+See `package.json` for available scripts.
 
 ```bash
 # Install dependencies
@@ -232,8 +231,8 @@ pnpm build
 # Start production server
 pnpm start
 
-# Run linter
-pnpm lint
+# Type check
+npx tsc --noEmit
 ```
 
 ---
@@ -242,7 +241,8 @@ pnpm lint
 
 - Uses **Client Components** (`'use client'`) for interactive features
 - Implements **Server Components** for data fetching and API routes
-- Uses **Supabase** for real-time database and authentication
-- Implements **localStorage** for offline-first capability
+- Persists all server data in **Supabase** (`profiles`, `saved_meals`, `quota`) — no file-system JSON store
+- Stores a **localStorage cache** on the client for offline reading; the server remains the source of truth
+- Requires `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`; routes return 503 when they are missing
 - Uses **Tailwind CSS** custom properties for theming
-- Includes **quota system** (daily limit on recipe generations)
+- Includes **quota system** (daily limit on recipe generations, atomic decrement in Supabase)

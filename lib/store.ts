@@ -163,14 +163,6 @@ export function getDailyQuota(): DailyQuota {
   return parsed
 }
 
-export function useOneQuota(): DailyQuota | null {
-  const q = getDailyQuota()
-  if (q.used >= q.max) return null
-  const updated = { ...q, used: q.used + 1 }
-  localStorage.setItem(QUOTA_KEY, JSON.stringify(updated))
-  return updated
-}
-
 export function setDailyQuota(used: number, max: number = 3): DailyQuota {
   const today = todayStr()
   const updated: DailyQuota = { date: today, used: Math.max(0, Math.min(used, max)), max }
