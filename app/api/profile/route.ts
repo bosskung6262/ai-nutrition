@@ -1,29 +1,17 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
-import { JsonStore } from '@/lib/server-db'
+import {
+  getDb,
+  isSupabaseConfigError,
+  profileToRow,
+  rowToProfile,
+} from '@/lib/supabase/data'
+import type { ProfileRow, SavedProfile } from '@/lib/supabase/data'
 import { SESSION_COOKIE, verifySession } from '@/lib/session'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-
-type SavedProfile = {
-  userEmail: string
-  updatedAt: string
-  age: string
-  gender: string
-  height: string
-  weight: string
-  activity: string
-  diet: string
-  health: string[]
-  avoid: string[]
-  bmr?: number
-  tdee?: number
-  targetCalories?: number
-}
-
-const profileStore = new JsonStore<string, SavedProfile>('ai-nutrition-profiles.json')
 
 const profileSchema = z.object({
   age: z.string().min(1),
@@ -80,10 +68,22 @@ export async function POST(req: Request) {
       targetCalories: data.targetCalories,
     }
 
-    profileStore.set(email, saved)
+    const db = getDb()
+    const { error } = await db
+      .from('profiles')
+      .upsert(profileToRow(saved), { onConflict: 'user_email' })
+    if (error) {
+      console.error(`${STEP} Upsert error:`, error.message, error.code)
+      throw error
+    }
+
     console.info(`${STEP} Saved profile for ${email} ok`)
     return NextResponse.json({ ok: true, saved }, { status: 200 })
   } catch (error: unknown) {
+    if (isSupabaseConfigError(error)) {
+      console.error(`${STEP} Supabase is not configured`)
+      return NextResponse.json({ error: error.message }, { status: 503 })
+    }
     const msg = error instanceof Error ? error.message : String(error)
     console.error(`${STEP} Unhandled error:`, msg, error)
     return NextResponse.json(
@@ -100,12 +100,26 @@ export async function GET() {
     if (!email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    const found = profileStore.get(email)
-    if (!found) {
+
+    const db = getDb()
+    const { data, error } = await db
+      .from('profiles')
+      .select('*')
+      .eq('user_email', email)
+      .maybeSingle()
+    if (error) {
+      console.error(`${STEP} Query error:`, error.message, error.code)
+      throw error
+    }
+    if (!data) {
       return NextResponse.json({ profile: null }, { status: 200 })
     }
-    return NextResponse.json({ profile: found }, { status: 200 })
+    return NextResponse.json({ profile: rowToProfile(data as ProfileRow) }, { status: 200 })
   } catch (error: unknown) {
+    if (isSupabaseConfigError(error)) {
+      console.error(`${STEP} Supabase is not configured`)
+      return NextResponse.json({ error: error.message }, { status: 503 })
+    }
     const msg = error instanceof Error ? error.message : String(error)
     console.error(`${STEP} Unhandled error:`, msg, error)
     return NextResponse.json(

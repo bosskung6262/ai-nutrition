@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server'
 import { SESSION_COOKIE, verifySession } from '@/lib/session'
 
 const PROTECTED_PAGES = ['/dashboard', '/onboarding', '/pantry', '/recipes']
-const PROTECTED_API = ['/api/generate-recipe', '/api/profile', '/api/saved-meals']
+const PROTECTED_API = ['/api/generate-recipe', '/api/profile', '/api/saved-meals', '/api/quota']
 
 /**
  * Next.js 16 proxy — replaces the deprecated middleware.ts convention.
@@ -70,5 +70,6 @@ export const config = {
     '/api/generate-recipe',
     '/api/profile',
     '/api/saved-meals',
+    '/api/quota',
   ],
 }

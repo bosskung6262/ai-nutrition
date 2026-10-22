@@ -115,7 +115,6 @@ Shared utilities, type definitions, and backend logic.
 | `store.ts` | Client-side state management (localStorage) |
 | `types.ts` | TypeScript type definitions for recipes, users, meals |
 | `utils.ts` | Helper utility functions |
-| `server-db.ts` | Server-side database operations |
 
 ### Supabase Subdirectory
 
@@ -123,6 +122,7 @@ Shared utilities, type definitions, and backend logic.
 |------|---------|
 | `client.ts` | Supabase client initialization (browser) |
 | `server.ts` | Supabase server client (Server Components/API routes) |
+| `data.ts` | Server-side persistence layer (profiles / saved_meals / quota) |
 | `middleware.ts` | Authentication middleware for Next.js |
 
 ---

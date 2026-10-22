@@ -3,50 +3,11 @@ import { cookies } from "next/headers";
 import { generateObject } from "ai";
 import { google } from "@ai-sdk/google";
 import { z } from "zod";
-import { JsonStore } from "@/lib/server-db";
+import { consumeQuota, getQuota, isSupabaseConfigError } from "@/lib/supabase/data";
 import { SESSION_COOKIE, verifySession } from "@/lib/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-type DailyQuota = { date: string; used: number; max: number };
-const QUOTA_MAX = 3;
-
-const todayStr = () => new Date().toISOString().slice(0, 10);
-
-const quotaStore = new JsonStore<string, DailyQuota>("ai-nutrition-quota.json");
-
-function getQuota(userKey: string): DailyQuota {
-  const today = todayStr();
-  let q = quotaStore.get(userKey);
-  if (!q || q.date !== today) {
-    q = { date: today, used: 0, max: QUOTA_MAX };
-    quotaStore.set(userKey, q);
-  }
-  return q;
-}
-
-function checkQuota(userKey: string): {
-  ok: boolean;
-  remaining: number;
-  quota: DailyQuota;
-} {
-  const q = getQuota(userKey);
-  if (q.used >= q.max) return { ok: false, remaining: 0, quota: q };
-  return { ok: true, remaining: q.max - q.used, quota: q };
-}
-
-function commitQuota(userKey: string): {
-  ok: boolean;
-  remaining: number;
-  quota: DailyQuota;
-} {
-  const q = getQuota(userKey);
-  if (q.used >= q.max) return { ok: false, remaining: 0, quota: q };
-  const updated = { ...q, used: q.used + 1 };
-  quotaStore.set(userKey, updated);
-  return { ok: true, remaining: updated.max - updated.used, quota: updated };
-}
 
 const QUANTITY_PATTERN =
   /(\d+(\.\d+)?\s*(ก\.?|กรัม|kg|กิโลกรัม|มล\.?|มิลลิลิตร|ลิตร|ช้อนโต๊ะ|ช้อนชา|ถ้วย|ฟอง|ชิ้น|ผล|ห่อ|กลีบ|แผ่น|หนีบ|ส่วน|ml|g|l|L|tsp|tbsp|cup))|(\d+\/\d+\s*(ถ้วย|ช้อนโต๊ะ|ช้อนชา))/i;
@@ -361,21 +322,24 @@ export async function POST(req: Request) {
 
     // Quota is keyed off the signed session cookie — never a client-supplied email.
     const cookieStore = await cookies();
-    const userKey =
-      (await verifySession(cookieStore.get(SESSION_COOKIE)?.value)) || "guest-" + todayStr();
+    const email = await verifySession(cookieStore.get(SESSION_COOKIE)?.value);
+    if (!email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    const preCheck = checkQuota(userKey);
-    if (!preCheck.ok) {
-      console.warn(`${STEP} Quota exhausted for ${userKey}`);
+    const preCheck = await getQuota(email);
+    if (preCheck.used >= preCheck.max) {
+      console.warn(`${STEP} Quota exhausted for ${email}`);
       return NextResponse.json(
         {
           error:
             "โควต้าสร้างเมนูอาหารวันนี้หมดแล้ว (3/3 ครั้ง) กรุณากลับมาใช้งานใหม่ในวันพรุ่งนี้",
-          quota: preCheck.quota,
+          quota: preCheck,
         },
         { status: 429 },
       );
     }
+    const preCheckRemaining = preCheck.max - preCheck.used;
 
     const perMealTarget = profile.targetCalories
       ? Math.round(profile.targetCalories / 3)
@@ -438,7 +402,7 @@ export async function POST(req: Request) {
     ].join("\n");
 
     console.info(
-      `${STEP} Calling AI for user=${userKey} meal=${pantry.mealTime} diet=${profile.diet} pre-check-remaining=${preCheck.remaining}`,
+      `${STEP} Calling AI for user=${email} meal=${pantry.mealTime} diet=${profile.diet} pre-check-remaining=${preCheckRemaining}`,
     );
 
     const t0 = Date.now();
@@ -484,10 +448,10 @@ export async function POST(req: Request) {
       `${STEP} AI OK in ${t1 - t0}ms recipes=${typed.recipes.length}`,
     );
 
-    const afterQuota = commitQuota(userKey);
+    const afterQuota = await consumeQuota(email);
     if (!afterQuota.ok) {
       console.warn(
-        `${STEP} Race condition: pre-check passed but commit failed for ${userKey}`,
+        `${STEP} Race condition: pre-check passed but consume failed for ${email}`,
       );
       return NextResponse.json(
         {
@@ -517,6 +481,10 @@ export async function POST(req: Request) {
       { status: 200 },
     );
   } catch (error: unknown) {
+    if (isSupabaseConfigError(error)) {
+      console.error(`${STEP} Supabase is not configured`);
+      return NextResponse.json({ error: error.message }, { status: 503 });
+    }
     const msg = error instanceof Error ? error.message : String(error);
     console.error(`${STEP} Unhandled error:`, msg, error);
     return NextResponse.json(

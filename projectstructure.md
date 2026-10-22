@@ -50,7 +50,6 @@ This project is a Next.js application focused on nutrition, pantry tracking, and
 ## Library / utilities
 
 - `lib/`
-  - `lib/server-db.ts` — server-side database logic
   - `lib/store.ts` — app state/store helper
   - `lib/types.ts` — shared TypeScript types
   - `lib/utils.ts` — generic utility functions
