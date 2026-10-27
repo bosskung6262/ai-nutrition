@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type { CreateMealPlanInput, MealPlanItem, MealPlanPayload } from '@/types/meal-plan'
 import { createAdminClient } from './server'
 
 /**
@@ -292,4 +293,99 @@ export async function consumeQuota(userEmail: string): Promise<QuotaResult> {
   }
 
   return { ok: false, remaining: 0, quota: seen ?? { date: todayStr(), used: 0, max: QUOTA_MAX } }
+}
+
+/* ── meal_plans ───────────────────────────────────────────────────── */
+
+export const MEAL_PLANS_MAX_PER_USER = 50
+
+export type MealPlanRow = {
+  id: string
+  user_email: string
+  title: string
+  description: string | null
+  meals: MealPlanItem[] | null
+  is_public: boolean
+  created_at: string
+}
+
+// shortcut: 48-bit hex share id — unguessable enough for link sharing; switch
+// to a longer base62 id if enumeration/collision ever becomes a concern.
+function newShareId(): string {
+  return 'mp_' + crypto.randomUUID().replace(/-/g, '').slice(0, 12)
+}
+
+/**
+ * `/plan/[id]` is the planned public preview route (UI not built yet) — kept as
+ * a path so the same link works on localhost, preview and production.
+ */
+function shareUrlFor(id: string, origin: string): string {
+  return new URL(`/plan/${id}`, origin).toString()
+}
+
+export function rowToMealPlan(row: MealPlanRow, origin: string): MealPlanPayload {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description ?? undefined,
+    meals: row.meals ?? [],
+    shareUrl: shareUrlFor(row.id, origin),
+    createdAt: row.created_at,
+  }
+}
+
+/** Insert a shareable plan owned by `userEmail`; the row id doubles as the share id. */
+export async function createMealPlan(
+  userEmail: string,
+  input: CreateMealPlanInput,
+  origin: string,
+): Promise<MealPlanPayload> {
+  const db = getDb()
+  const { data, error } = await db
+    .from('meal_plans')
+    .insert({
+      id: newShareId(),
+      user_email: userEmail,
+      title: input.title,
+      description: input.description ?? null,
+      meals: input.meals,
+      is_public: true,
+      created_at: new Date().toISOString(),
+    })
+    .select('*')
+    .single()
+  if (error) throw error
+  return rowToMealPlan(data as MealPlanRow, origin)
+}
+
+/** Every plan owned by `userEmail`, newest first. */
+export async function listMealPlans(
+  userEmail: string,
+  origin: string,
+): Promise<MealPlanPayload[]> {
+  const db = getDb()
+  const { data, error } = await db
+    .from('meal_plans')
+    .select('*')
+    .eq('user_email', userEmail)
+    .order('created_at', { ascending: false })
+    .limit(MEAL_PLANS_MAX_PER_USER)
+  if (error) throw error
+  return ((data ?? []) as MealPlanRow[]).map((row) => rowToMealPlan(row, origin))
+}
+
+/** Public read used by share links — non-public plans are reported as missing. */
+export async function getPublicMealPlan(
+  id: string,
+  origin: string,
+): Promise<MealPlanPayload | null> {
+  const db = getDb()
+  const { data, error } = await db
+    .from('meal_plans')
+    .select('*')
+    .eq('id', id)
+    .eq('is_public', true)
+    .maybeSingle()
+  if (error) throw error
+  return data ? rowToMealPlan(data as MealPlanRow, origin) : null
 }

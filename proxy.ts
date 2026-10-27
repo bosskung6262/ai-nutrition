@@ -17,12 +17,9 @@ export async function proxy(request: NextRequest) {
   const session = await verifySession(request.cookies.get(SESSION_COOKIE)?.value)
   const isAuthed = !!session
 
-  // ── Root: allow authenticated users to see landing page ────────────
-  if ((pathname === '/' || pathname === '') && isAuthed) {
+  // ── Root: landing page is always public ────────────────────────────
+  if (pathname === '/' || pathname === '') {
     return NextResponse.next()
-  }
-  if ((pathname === '/' || pathname === '') && !isAuthed) {
-    return NextResponse.redirect(new URL('/login', request.url))
   }
 
   // ── Protected pages: require session ──────────────────────────────
@@ -50,9 +47,9 @@ export async function proxy(request: NextRequest) {
     )
   }
 
-  // ── Login / Signup: redirect to dashboard if already authed ───────
-  if ((pathname === '/login' || pathname === '/signup') && isAuthed) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+  // ── Login / Signup: allow access to fix state sync issues ─────────
+  if (pathname === '/login' || pathname === '/signup') {
+    return NextResponse.next()
   }
 
   return NextResponse.next()
