@@ -5,18 +5,49 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-background: var(--background); --color-foreground: var(--foreground); --color-card: var(--card); --color-card-foreground: var(--card-foreground); --color-primary: var(--primary); --color-primary-foreground: var(--primary-foreground); --color-muted-foreground: var(--muted-foreground); --color-border: var(--border); --color-ring: var(--ring); --font-sans: var(--font-prompt), sans-serif; --font-serif: var(--font-kanit), sans-serif; --radius-lg: var(--radius);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --font-sans: var(--font-prompt), sans-serif;
+  --font-serif: var(--font-kanit), sans-serif;
+  --radius-lg: var(--radius);
 }
 
-:root { color-scheme: light; --background: #f6f5f0; --foreground: #203129; --card: #fffefb; --card-foreground: #203129; --primary: #496653; --primary-foreground: #f8f7f2; --muted-foreground: #75817b; --border: #dfe4dc; --ring: #91a696; --radius: 1.25rem; }
-
-/* Override theme colors for ai-nutrition-main components */
 :root {
-  --color-bg: #F1F3E0;
-  --color-card: #D2DCB6;
-  --color-card-bg: #FFFFFF;
+  color-scheme: light;
+  --background: #f6f5f0;
+  --foreground: #203129;
+  --card: #fffefb;
+  --card-foreground: #203129;
+  --primary: #496653;
+  --primary-foreground: #f8f7f2;
+  --muted-foreground: #75817b;
+  --border: #dfe4dc;
+  --ring: #91a696;
+  --radius: 1.25rem;
+
+  /* UI Palette Aliases */
+  --bg: var(--background);
+  --accent: #A1BC98;
+  --primary-dark: #3a5242;
+  --muted: var(--muted-foreground);
+  --surface: var(--card);
+  --brand: #496653;
+  --brand-ink: #203129;
+  --ink-soft: #4a5748;
+
+  /* Helper Palette */
+  --color-bg: #f6f5f0;
+  --color-card: #fffefb;
+  --color-card-bg: #fffefb;
   --color-accent: #A1BC98;
-  --color-primary-dark: #5c6b59;
+  --color-primary-dark: #3a5242;
   --color-gold: #d97706;
   --color-gold-bg: #fef3c7;
   --color-sage: #166534;
@@ -25,23 +56,13 @@
   --color-ochre-bg: #fef3c7;
   --color-danger: #dc2626;
   --color-danger-bg: #fee2e2;
-  --radius-card: 1.5rem;
+  --radius-card: 1.25rem;
   --radius-pill: 9999px;
-
-  /* Semantic aliases (unprefixed) — these resolve the --bg / --accent / --primary-dark / --muted
-     references used across components; without them those declarations were dropped silently. */
-  --bg: var(--color-bg);
-  --accent: var(--color-accent);
-  --primary-dark: var(--color-primary-dark);
-  --muted: var(--muted-foreground);
-  /* Brand + surface aliases reused by nav/cards/modals */
-  --surface: var(--color-card-bg);
-  --brand: #778873;
-  --brand-ink: #4A6353;
-  --ink-soft: #4a5748;
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 html {
   scroll-behavior: smooth;
@@ -56,12 +77,34 @@ body {
   line-height: 1.6;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-kanit);
   letter-spacing: -0.02em;
 }
 
-a { color: inherit; text-decoration: none; }
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Global accessibility: respect reduced-motion for the whole app (base style). */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
 
 .shell {
   width: min(1200px, calc(100% - 48px));
@@ -653,19 +696,44 @@ a { color: inherit; text-decoration: none; }
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0) rotate(1deg); }
-  50% { transform: translateY(-10px) rotate(-1deg); }
+
+  0%,
+  100% {
+    transform: translateY(0) rotate(1deg);
+  }
+
+  50% {
+    transform: translateY(-10px) rotate(-1deg);
+  }
 }
 
 @keyframes pulse-ring {
-  0% { transform: scale(0.95); opacity: 0.8; }
-  50% { transform: scale(1.05); opacity: 0.4; }
-  100% { transform: scale(0.95); opacity: 0.8; }
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+
+  50% {
+    transform: scale(1.05);
+    opacity: 0.4;
+  }
+
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
 }
 
 @keyframes chef-bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
 .animate-float {
@@ -689,10 +757,20 @@ a { color: inherit; text-decoration: none; }
 /* Landing page styles live in app/landing.css (single source). */
 
 /* Responsive helpers — fallback ไม่พึ่ง Tailwind breakpoint */
-.nav-desktop { display: none; }
-.nav-mobile-toggle { display: inline-flex; }
+.nav-desktop {
+  display: none;
+}
+
+.nav-mobile-toggle {
+  display: inline-flex;
+}
 
 @media (min-width: 768px) {
-  .nav-desktop { display: flex; }
-  .nav-mobile-toggle { display: none; }
+  .nav-desktop {
+    display: flex;
+  }
+
+  .nav-mobile-toggle {
+    display: none;
+  }
 }

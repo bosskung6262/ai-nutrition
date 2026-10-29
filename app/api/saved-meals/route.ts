@@ -6,6 +6,7 @@ import {
   isSupabaseConfigError,
   mealToRow,
   rowToMeal,
+  stableUserId,
   todayStr,
 } from '@/lib/supabase/data'
 import type { SavedMealRow, StoredMeal, StoredRecipe } from '@/lib/supabase/data'
@@ -73,7 +74,9 @@ export async function POST(req: Request) {
     }
 
     const db = getDb()
-    const { error } = await db.from('saved_meals').insert(mealToRow(email, meal))
+    const { error } = await db
+      .from('saved_meals')
+      .insert(mealToRow(email, await stableUserId(email), meal))
     if (error) throw error
 
     console.info(`${STEP} Saved meal ${meal.id} for ${email}`)
@@ -105,7 +108,7 @@ export async function GET() {
       .from('saved_meals')
       .select('*')
       .eq('user_email', email)
-      .order('saved_at', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(MAX_MEALS_PER_USER)
     if (error) {
       console.error(`${STEP} Query error:`, error.message, error.code)

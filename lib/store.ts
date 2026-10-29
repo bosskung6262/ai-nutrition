@@ -1,6 +1,7 @@
 'use client'
 
 import type { AuthUser, DailyQuota, GenerateResponse, Pantry, Profile, Recipe, SavedMeal } from './types'
+import { DAILY_QUOTA_MAX } from './types'
 import { Award, Clock, Dumbbell } from 'lucide-react'
 
 const AUTH_KEY = 'ai-nutrition-auth'
@@ -146,24 +147,24 @@ export function resetUserPassword(email: string, newPassword: string): boolean {
 }
 
 export function getDailyQuota(): DailyQuota {
-  if (typeof window === 'undefined') return { date: todayStr(), used: 0, max: 3 }
+  if (typeof window === 'undefined') return { date: todayStr(), used: 0, max: DAILY_QUOTA_MAX }
   const raw = localStorage.getItem(QUOTA_KEY)
   const today = todayStr()
   if (!raw) {
-    const fresh: DailyQuota = { date: today, used: 0, max: 3 }
+    const fresh: DailyQuota = { date: today, used: 0, max: DAILY_QUOTA_MAX }
     localStorage.setItem(QUOTA_KEY, JSON.stringify(fresh))
     return fresh
   }
   const parsed = JSON.parse(raw) as DailyQuota
   if (parsed.date !== today) {
-    const reset: DailyQuota = { date: today, used: 0, max: 3 }
+    const reset: DailyQuota = { date: today, used: 0, max: DAILY_QUOTA_MAX }
     localStorage.setItem(QUOTA_KEY, JSON.stringify(reset))
     return reset
   }
   return parsed
 }
 
-export function setDailyQuota(used: number, max: number = 3): DailyQuota {
+export function setDailyQuota(used: number, max: number = DAILY_QUOTA_MAX): DailyQuota {
   const today = todayStr()
   const updated: DailyQuota = { date: today, used: Math.max(0, Math.min(used, max)), max }
   if (typeof window !== 'undefined') {

@@ -21,6 +21,7 @@ import { useAuth } from '@/components/AuthProvider'
 import { LoadingModal } from '@/components/LoadingModal'
 import { getDailyQuota, loadPantry, loadProfile, savePantry, saveResult, setDailyQuota } from '@/lib/store'
 import {
+  DAILY_QUOTA_MAX,
   INGREDIENT_CATEGORIES,
   MEAL_TIMES,
   PREP_TIMES,
@@ -242,8 +243,8 @@ export default function PantryPage() {
       }
       if (!res.ok) {
         if (res.status === 429) {
-          const used = data.quota?.used ?? data._meta?.usedSoFar ?? 3
-          const max = data.quota?.max ?? 3
+          const used = data.quota?.used ?? data._meta?.usedSoFar ?? DAILY_QUOTA_MAX
+          const max = data.quota?.max ?? DAILY_QUOTA_MAX
           setDailyQuota(used, max)
           setRemaining(max - used)
         }
@@ -251,7 +252,7 @@ export default function PantryPage() {
       }
       saveResult(data as GenerateResponse)
       const used = data._meta?.usedSoFar ?? 1
-      const max = 3
+      const max = DAILY_QUOTA_MAX
       setDailyQuota(used, max)
       setRemaining(max - used)
       router.push('/recipes')
@@ -293,41 +294,16 @@ export default function PantryPage() {
 
       <div className="shell">
         <div style={{ maxWidth: 920, margin: '0 auto' }}>
-          <div style={{ marginBottom: 28 }}>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '6px 12px',
-                borderRadius: 999,
-                background: 'rgba(161,188,152,0.2)',
-                color: 'var(--primary)',
-                fontSize: 11,
-                fontWeight: 600,
-                letterSpacing: 0.02,
-                marginBottom: 16,
-              }}
-            >
-              <UtensilsCrossed style={{ width: 12, height: 12 }} />
-              เลือกมื้ออาหารของคุณ
+          <div className="mb-7">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-[12px] font-semibold tracking-wide text-primary uppercase">
+              Ingredient Selection
             </div>
-            <h1
-              style={{
-                fontFamily: 'var(--font-kanit)',
-                margin: 0,
-                fontSize: 42,
-                fontWeight: 600,
-                color: 'var(--foreground)',
-                letterSpacing: '-0.03em',
-                lineHeight: 1.1,
-              }}
-            >
-              วันนี้คุณอยากกินมื้อไหนดี?
-            </h1>
-            <p style={{ margin: '10px 0 0', color: 'var(--muted)', fontSize: 15, maxWidth: 600 }}>
-              เลือกช่วงเวลาและเวลาที่คุณต้องการเตรียมอาหาร AI จะคัดสรรสูตรที่เหมาะสมที่สุดสำหรับคุณ
-            </p>
+            <h1 className="mt-3 font-[var(--font-kanit)] text-3xl font-semibold text-[var(--foreground)] sm:text-4xl">
+            วันนี้คุณอยากกินมื้อไหนดี? <em className="not-italic text-[#91a694]">สำหรับวันนี้</em>
+          </h1>
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            เลือกช่วงเวลาและเวลาที่คุณต้องการเตรียมอาหาร <span className="text-primary font-medium">AI จะคัดสรรสูตรที่เหมาะสมที่สุด</span>สำหรับคุณ
+          </p>
           </div>
 
           <form onSubmit={onSubmit} className="max-w-4xl mx-auto bg-white/80 backdrop-blur-md rounded-3xl p-6 sm:p-10 border border-white/60 shadow-xl my-8">
@@ -353,13 +329,13 @@ export default function PantryPage() {
                 }}
               >
                 <Zap className="w-4 h-4" />
-                โควต้าเหลือ {remaining}/3 ครั้ง
+                โควต้าเหลือ {remaining}/{DAILY_QUOTA_MAX} ครั้ง
               </div>
             </div>
 
             <div style={{ marginBottom: 10 }}>
-              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--foreground)', marginBottom: 12 }}>
-                เลือกเวลาของมื้ออาหาร (จำเป็นต้องเลือก 1 อย่าง)
+              <div className="flex items-center gap-2 mb-6">
+                <span className="text-[11px] font-bold tracking-wider text-[#708c77] uppercase">1. Meal Selection</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
                 {MEAL_TIMES.map((mt) => {
@@ -391,9 +367,12 @@ export default function PantryPage() {
             </div>
 
             <fieldset style={{ border: 0, padding: 0, margin: '26px 0 0' }}>
-              <legend style={{ marginBottom: 12, fontSize: 13, fontWeight: 500, color: 'var(--foreground)' }}>
-                เลือกเวลาที่ต้องการเตรียม (จำเป็นต้องเลือก 1 อย่าง)
-              </legend>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-[11px] font-bold tracking-wider text-[#708c77] uppercase">2. Preparation Time</span>
+              </div>
+              <div style={{ marginBottom: 12, fontSize: 13, fontWeight: 500, color: 'var(--foreground)' }}>
+                คุณมีเวลาเตรียมอาหารนานแค่ไหน?
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
                 {PREP_TIMES.map((pt) => {
                   const selected = prepTime === pt.id
@@ -421,6 +400,9 @@ export default function PantryPage() {
             </fieldset>
 
             <div style={{ marginTop: 28 }}>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-[11px] font-bold tracking-wider text-[#708c77] uppercase">3. Ingredients Inventory</span>
+              </div>
               <div
                 style={{
                   display: 'flex',
@@ -430,7 +412,7 @@ export default function PantryPage() {
                 }}
               >
                 <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--foreground)' }}>
-                  ส่วนผสมที่มีอยู่ในครัว
+                  วัตถุดิบที่คุณมีตอนนี้ (เลือกได้หลายอย่าง)
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--muted)' }}>
                   เลือกแล้ว {items.length} รายการ

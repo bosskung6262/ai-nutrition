@@ -96,40 +96,15 @@ export default function OnboardingPage() {
 
       <div className="shell">
         <div style={{ maxWidth: 760, margin: '0 auto' }}>
-          <div style={{ marginBottom: 28, textAlign: 'left' }}>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '6px 12px',
-                borderRadius: 999,
-                background: 'rgba(161,188,152,0.2)',
-                color: 'var(--primary)',
-                fontSize: 11,
-                fontWeight: 600,
-                letterSpacing: 0.02,
-                marginBottom: 16,
-              }}
-            >
-              <Sparkles className="w-3 h-3" />
-              โปรไฟล์สุขภาพส่วนตัว
+          <div className="mb-9">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-[12px] font-semibold tracking-wide text-primary uppercase">
+              Personal Onboarding
             </div>
-            <h1
-              style={{
-                fontFamily: 'var(--font-kanit)',
-                margin: 0,
-                fontSize: 42,
-                fontWeight: 600,
-                color: 'var(--foreground)',
-                letterSpacing: '-0.03em',
-                lineHeight: 1.1,
-              }}
-            >
-              บอกเล่าเกี่ยวกับตัวคุณ
+            <h1 className="mt-3 font-[var(--font-kanit)] text-3xl font-semibold text-[var(--foreground)] sm:text-4xl">
+              มาเริ่มต้นดูแลสุขภาพ <em className="not-italic text-[#91a694]">ในแบบของคุณ</em>
             </h1>
-            <p style={{ margin: '10px 0 0', color: 'var(--muted)', fontSize: 15, maxWidth: 560 }}>
-              ข้อมูลเหล่านี้จะช่วยให้ AI คำนวณพลังงานที่เผาไหม้ และวางแผนเมนูอาหารที่เหมาะสมกับเป้าหมายของคุณ
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              บอกข้อมูลของคุณให้ AI <span className="text-primary font-medium">ช่วยวางแผนมื้ออาหารที่เหมาะสม</span> และปลอดภัยที่สุด
             </p>
           </div>
 

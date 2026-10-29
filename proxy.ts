@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { SESSION_COOKIE, verifySession } from '@/lib/session'
 
-const PROTECTED_PAGES = ['/dashboard', '/onboarding', '/pantry', '/recipes']
+const PROTECTED_PAGES = ['/dashboard', '/onboarding', '/pantry', '/recipes', '/smart-swap']
 const PROTECTED_API = ['/api/generate-recipe', '/api/profile', '/api/saved-meals', '/api/quota']
 
 /**
@@ -64,6 +64,7 @@ export const config = {
     '/onboarding/:path*',
     '/pantry/:path*',
     '/recipes/:path*',
+    '/smart-swap/:path*',
     '/api/generate-recipe',
     '/api/profile',
     '/api/saved-meals',

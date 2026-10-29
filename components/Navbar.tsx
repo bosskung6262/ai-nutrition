@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Leaf, LogOut, Menu, User, X } from 'lucide-react'
+import { Leaf, LogOut, Menu, Repeat, User, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 
@@ -54,22 +54,24 @@ export function Navbar() {
   }
 
   const navLinkClass = (href: string) =>
-    `rounded-full px-3 py-2 text-sm font-medium transition-colors ${
+    `inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-colors ${
       pathname === href
         ? 'bg-[var(--accent)]/20 text-[var(--primary)]'
         : 'text-[var(--muted)] hover:text-[var(--primary)]'
     }`
 
-  const navLinks = isLandingPage
+  const navLinks: { href: string; label: string; icon?: typeof Leaf }[] = isLandingPage
     ? [
         { href: '#features', label: 'ฟีเจอร์' },
         { href: '#how', label: 'วิธีใช้งาน' },
         { href: '/dashboard', label: 'แดชบอร์ด' },
+        { href: '/smart-swap', label: 'Smart Swap', icon: Repeat },
       ]
     : [
         { href: '/', label: 'หน้าหลัก' },
         { href: '/dashboard', label: 'แดชบอร์ด' },
         { href: '/pantry', label: 'สร้างเมนู' },
+        { href: '/smart-swap', label: 'Smart Swap', icon: Repeat },
       ]
 
   return (
@@ -80,6 +82,7 @@ export function Navbar() {
         <nav className="nav-desktop items-center gap-1" aria-label="เมนูหลัก">
           {navLinks.map((link) => (
             <Link key={link.href} href={link.href} className={navLinkClass(link.href)}>
+              {link.icon && <link.icon className="size-4" aria-hidden="true" />}
               {link.label}
             </Link>
           ))}
@@ -146,6 +149,7 @@ export function Navbar() {
                 className={navLinkClass(link.href)}
                 onClick={closeMenu}
               >
+                {link.icon && <link.icon className="size-4" aria-hidden="true" />}
                 {link.label}
               </Link>
             ))}

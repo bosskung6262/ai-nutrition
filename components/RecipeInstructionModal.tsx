@@ -32,7 +32,7 @@ export function RecipeInstructionModal({ recipe, onClose }: RecipeInstructionMod
         <div className="mt-7 grid gap-6 md:grid-cols-[0.8fr_1.2fr]">
           <section className="rounded-[20px] border border-[var(--border)] bg-[var(--bg)] p-5">
             <h3 className="font-[var(--font-kanit)] text-sm font-semibold text-[var(--foreground)]">ส่วนผสมทั้งหมด</h3>
-            <ul className="mt-3 space-y-2 text-sm text-[var(--foreground)]">
+            <ul className="mt-3 space-y-2 text-[13px] leading-relaxed text-[var(--muted)]">
               {recipe.ingredients.map((ingredient) => <li key={ingredient}>• {ingredient}</li>)}
             </ul>
             {recipe.allergens.length > 0 && (

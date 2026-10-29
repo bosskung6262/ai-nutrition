@@ -19,7 +19,7 @@ const features = [
 export default function Home() {
   return (
     <>
-    <main id="top">
+    <main id="top" className="landing-page">
       <section className="hero shell">
         <div className="hero-copy">
           <div className="kicker">

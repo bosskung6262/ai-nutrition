@@ -53,7 +53,7 @@ export function RecipeCard({ recipe, isSaved, onOpenInstructions, onSave, onShar
 
       <section className="min-h-[92px]">
         <h4 className="mb-2 font-[var(--font-kanit)] text-xs font-semibold text-[var(--foreground)]">ส่วนผสมหลัก</h4>
-        <ul className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm text-[var(--foreground)]">
+        <ul className="grid grid-cols-2 gap-x-3 gap-y-2 text-[13px] leading-relaxed text-[var(--muted)]">
           {recipe.ingredients.slice(0, 4).map((ingredient) => (
             <li key={ingredient} className="truncate">• {ingredient}</li>
           ))}

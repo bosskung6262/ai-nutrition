@@ -8,7 +8,7 @@ import { RecipeCard } from '@/components/RecipeCard'
 import { RecipeInstructionModal } from '@/components/RecipeInstructionModal'
 import { ShareModal } from '@/components/ShareModal'
 import { getDailyQuota, loadPantry, loadResult, saveMeal, toRecipe } from '@/lib/store'
-import type { Recipe } from '@/lib/types'
+import { DAILY_QUOTA_MAX, type Recipe } from '@/lib/types'
 
 export default function RecipesPage() {
   const { user, loading } = useAuth()
@@ -99,20 +99,23 @@ export default function RecipesPage() {
       <div className="shell flex items-center justify-between py-11 pb-8">
         <div className="inline-flex items-center gap-2 rounded-full bg-linear-to-br from-[var(--color-card)] to-[var(--accent)] px-4 py-2 text-xs font-semibold text-[var(--primary-dark)]">
           <Sparkles className="size-3.5" />
-          โควต้าวันนี้เหลือ {quotaRemaining}/3 ครั้ง
+          โควต้าวันนี้เหลือ {quotaRemaining}/{DAILY_QUOTA_MAX} ครั้ง
         </div>
       </div>
 
       <main className="shell">
         <div className="mx-auto max-w-[1100px]">
-          <header className="mb-7">
-            <div className="mb-4 inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)]/20 px-3 py-1.5 text-[11px] font-semibold tracking-wide text-[var(--primary)]">
-              <UtensilsCrossed className="size-3" />
-              ผลลัพธ์เมนู{mealTimeLabel}
+          <div className="mb-8">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-[12px] font-semibold tracking-wide text-primary uppercase">
+              AI Recommendation
             </div>
-            <h1 className="font-[var(--font-kanit)] text-[42px] leading-[1.1] font-semibold tracking-[-0.03em] text-[var(--foreground)]">เชฟ AI คัดสรรเมนูสุดพิเศษ</h1>
-            <p className="mt-2.5 max-w-[620px] text-[15px] text-[var(--muted)]">3 เมนูที่ออกแบบมาเพื่อคุณโดยเฉพาะ เหมาะกับเป้าหมายและสุขภาพของคุณที่สุด</p>
-          </header>
+            <h1 className="mt-3 font-[var(--font-kanit)] text-3xl font-semibold text-[var(--foreground)] sm:text-4xl">
+              เมนูที่เหมาะกับคุณ <em className="not-italic text-[#91a694]">สำหรับ{mealTimeLabel}</em>
+            </h1>
+            <p className="mt-2 text-[15px] text-[var(--muted)]">
+              เราคำนวณสารอาหารและกรองวัตถุดิบที่คุณเลือก เพื่อให้ได้<span className="text-primary font-medium">มื้อที่อร่อยและปลอดภัย</span>ที่สุด
+            </p>
+          </div>
 
           <section className="glass-card mb-6 p-6 sm:p-8">
             <div className="card-header mt-[-4px] flex-wrap gap-4">

@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { generateObject } from "ai";
-import { google } from "@ai-sdk/google";
-import { z } from "zod";
+import { generateObjectWithFallback } from "@/lib/ai";
 import { sanitizePromptValue } from "@/lib/prompt";
 import { consumeQuota, getQuota, isSupabaseConfigError } from "@/lib/supabase/data";
 import { SESSION_COOKIE, verifySession } from "@/lib/session";
@@ -60,7 +58,7 @@ export async function POST(req: Request) {
       console.warn(`${STEP} Quota exhausted for ${email}`);
       return NextResponse.json(
         {
-          error: "โควต้าสร้างเมนูอาหารวันนี้หมดแล้ว (3/3 ครั้ง) กรุณากลับมาใช้งานใหม่ในวันพรุ่งนี้",
+          error: `โควต้าสร้างเมนูอาหารวันนี้หมดแล้ว (${preCheck.used}/${preCheck.max} ครั้ง) กรุณากลับมาใช้งานใหม่ในวันพรุ่งนี้`,
           quota: preCheck,
         },
         { status: 429 },
@@ -81,16 +79,14 @@ export async function POST(req: Request) {
     ].join("\n");
 
     const t0 = Date.now();
-    const modelName = process.env.GEMINI_MODEL || "gemini-3-flash-preview";
 
-    const { object } = await generateObject({
-      model: google(modelName),
-      instructions: SYSTEM_PROMPT,
+    const { object: typed, model: modelName } = await generateObjectWithFallback({
+      step: STEP,
+      system: SYSTEM_PROMPT,
       prompt: userPrompt,
       schema: healthyAltOutputSchema,
     });
     const t1 = Date.now();
-    const typed = object as z.infer<typeof healthyAltOutputSchema>;
 
     console.info(`${STEP} AI OK in ${t1 - t0}ms craving=${craving}`);
 

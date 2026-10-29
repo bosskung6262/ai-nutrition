@@ -15,6 +15,9 @@ export interface DailyQuota {
   max: number
 }
 
+/** Daily AI generation quota per user (server + client share this value). */
+export const DAILY_QUOTA_MAX = 99
+
 export interface Profile {
   age: string
   gender: string

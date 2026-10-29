@@ -6,6 +6,7 @@ import {
   isSupabaseConfigError,
   profileToRow,
   rowToProfile,
+  stableUserId,
 } from '@/lib/supabase/data'
 import type { ProfileRow, SavedProfile } from '@/lib/supabase/data'
 import { SESSION_COOKIE, verifySession } from '@/lib/session'
@@ -71,7 +72,7 @@ export async function POST(req: Request) {
     const db = getDb()
     const { error } = await db
       .from('profiles')
-      .upsert(profileToRow(saved), { onConflict: 'user_email' })
+      .upsert(profileToRow(saved, await stableUserId(email)), { onConflict: 'id' })
     if (error) {
       console.error(`${STEP} Upsert error:`, error.message, error.code)
       throw error
@@ -105,7 +106,7 @@ export async function GET() {
     const { data, error } = await db
       .from('profiles')
       .select('*')
-      .eq('user_email', email)
+      .eq('id', await stableUserId(email))
       .maybeSingle()
     if (error) {
       console.error(`${STEP} Query error:`, error.message, error.code)
@@ -114,7 +115,10 @@ export async function GET() {
     if (!data) {
       return NextResponse.json({ profile: null }, { status: 200 })
     }
-    return NextResponse.json({ profile: rowToProfile(data as ProfileRow) }, { status: 200 })
+    return NextResponse.json(
+      { profile: rowToProfile(data as ProfileRow, email) },
+      { status: 200 },
+    )
   } catch (error: unknown) {
     if (isSupabaseConfigError(error)) {
       console.error(`${STEP} Supabase is not configured`)

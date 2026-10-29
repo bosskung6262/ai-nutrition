@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { CreateMealPlanInput, MealPlanItem, MealPlanPayload } from '@/types/meal-plan'
+import { DAILY_QUOTA_MAX } from '@/lib/types'
 import { createAdminClient } from './server'
 
 /**
@@ -10,6 +11,54 @@ import { createAdminClient } from './server'
  */
 
 export const todayStr = (): string => new Date().toISOString().slice(0, 10)
+
+/**
+ * Stable, deterministic uuid for a session email.
+ *
+ * This app authenticates with a signed cookie that carries only an email — it
+ * never signs in to Supabase Auth, so there is no `auth.uid()` to use. Both
+ * `profiles.id` and `saved_meals.user_id` are NOT NULL uuid columns, so instead
+ * of writing NULL we derive one identity per email (SHA-256, shaped as a v4
+ * uuid). The same email always maps to the same uuid, on every request.
+ *
+ * Reads and writes always go through the service-role client, which bypasses
+ * RLS — so the `auth.uid() = id` / `auth.uid() = user_id` policies are never
+ * evaluated rather than being violated.
+ */
+export async function stableUserId(email: string): Promise<string> {
+  const digest = new Uint8Array(
+    await crypto.subtle.digest('SHA-256', new TextEncoder().encode(email.trim().toLowerCase())),
+  )
+  digest[6] = (digest[6] & 0x0f) | 0x40 // version 4
+  digest[8] = (digest[8] & 0x3f) | 0x80 // RFC 4122 variant
+  const hex = Array.from(digest.subarray(0, 16), (b) => b.toString(16).padStart(2, '0')).join('')
+  return [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    hex.slice(12, 16),
+    hex.slice(16, 20),
+    hex.slice(20, 32),
+  ].join('-')
+}
+
+/** Form text → int4 column (`''` and unparseable input become NULL). */
+function toInt(value: string | null | undefined): number | null {
+  if (!value || !value.trim()) return null
+  const parsed = Number.parseInt(value, 10)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+/** Form text → numeric column (`''` and unparseable input become NULL). */
+function toNum(value: string | null | undefined): number | null {
+  if (!value || !value.trim()) return null
+  const parsed = Number.parseFloat(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+/** int4/numeric column → the string form the profile form expects. */
+function numToStr(value: number | null | undefined): string {
+  return value === null || value === undefined ? '' : String(value)
+}
 
 /** Raised when Supabase env vars are missing or still placeholders. */
 export class SupabaseConfigError extends Error {
@@ -37,20 +86,27 @@ export function getDb(): SupabaseClient {
 
 /* ── profiles ─────────────────────────────────────────────────────── */
 
+/**
+ * The real `profiles` columns. The table is keyed by `id` (uuid) and stores no
+ * email at all — identity is the derived `stableUserId()` above.
+ */
 export type ProfileRow = {
-  user_email: string
-  updated_at: string
-  age: string
-  gender: string
-  height: string
-  weight: string
-  activity: string
-  diet: string
-  health: string[]
-  avoid: string[]
+  id: string
+  updated_at: string | null
+  full_name: string | null
+  phone_number: string | null
+  age: number | null
+  gender: string | null
+  height: number | null
+  weight: number | null
+  activity_level: string | null
   bmr: number | null
   tdee: number | null
   target_calories: number | null
+  health_conditions: string[] | null
+  diet_style: string | null
+  allergies: string[] | null
+  activity: string | null
 }
 
 /** Application shape of a saved profile (camelCase on the wire). */
@@ -70,36 +126,40 @@ export type SavedProfile = {
   targetCalories?: number
 }
 
-export function profileToRow(profile: SavedProfile): ProfileRow {
+export function profileToRow(profile: SavedProfile, id: string): ProfileRow {
   return {
-    user_email: profile.userEmail,
+    id,
     updated_at: profile.updatedAt,
-    age: profile.age,
-    gender: profile.gender,
-    height: profile.height,
-    weight: profile.weight,
-    activity: profile.activity,
-    diet: profile.diet,
-    health: profile.health,
-    avoid: profile.avoid,
+    full_name: null,
+    phone_number: null,
+    age: toInt(profile.age),
+    gender: profile.gender || null,
+    height: toNum(profile.height),
+    weight: toNum(profile.weight),
+    activity_level: profile.activity || null,
     bmr: profile.bmr ?? null,
     tdee: profile.tdee ?? null,
     target_calories: profile.targetCalories ?? null,
+    health_conditions: profile.health,
+    diet_style: profile.diet || null,
+    allergies: profile.avoid,
+    activity: profile.activity || null,
   }
 }
 
-export function rowToProfile(row: ProfileRow): SavedProfile {
+export function rowToProfile(row: ProfileRow, userEmail: string): SavedProfile {
   return {
-    userEmail: row.user_email,
-    updatedAt: row.updated_at,
-    age: row.age,
-    gender: row.gender,
-    height: row.height,
-    weight: row.weight,
-    activity: row.activity,
-    diet: row.diet,
-    health: row.health ?? [],
-    avoid: row.avoid ?? [],
+    userEmail,
+    updatedAt: row.updated_at ?? new Date().toISOString(),
+    age: numToStr(row.age),
+    gender: row.gender ?? '',
+    height: numToStr(row.height),
+    weight: numToStr(row.weight),
+    // `activity_level` is the canonical column; `activity` is a legacy duplicate.
+    activity: row.activity_level ?? row.activity ?? '',
+    diet: row.diet_style ?? '',
+    health: row.health_conditions ?? [],
+    avoid: row.allergies ?? [],
     bmr: row.bmr ?? undefined,
     tdee: row.tdee ?? undefined,
     targetCalories: row.target_calories ?? undefined,
@@ -131,82 +191,90 @@ export type StoredMeal = {
   recipe: StoredRecipe
 }
 
+/**
+ * The real `saved_meals` columns. There is no place for the rank badge,
+ * prep time, allergens or a nested recipe blob — those are reconstructed with
+ * neutral placeholders in `rowToMeal()`.
+ */
 export type SavedMealRow = {
   id: string
-  user_email: string
-  meal_time: StoredMeal['mealTime']
-  date: string
-  saved_at: string
-  rank: string | null
-  rank_num: number | null
-  label: string | null
-  tone: string | null
-  title: string | null
-  prep_time: string | null
-  kcal: number | null
-  protein: string | null
-  carbs: string | null
-  fat: string | null
+  user_id: string
+  created_at: string | null
+  recipe_name: string
+  meal_time: string | null
+  calories_kcal: number | null
+  protein_g: number | null
+  carbs_g: number | null
+  fat_g: number | null
   ingredients: string[] | null
-  allergens: string[] | null
-  steps: string[] | null
-  safety_note: string | null
-  recipe_json: StoredRecipe | null
+  cooking_steps: string[] | null
+  health_safety_note: string | null
+  user_email: string | null
+  saved_at: string | null
 }
 
-export function mealToRow(email: string, meal: StoredMeal): SavedMealRow {
+/** `'12g'` / `'Δ-5g'` → `12` / `-5`; anything unparseable becomes NULL. */
+function macroToNumber(value: string): number | null {
+  const parsed = Number.parseFloat(value.replace(/[^\d.-]/g, ''))
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+/** numeric column → the `'12g'` display form used by the cards. */
+function macroFromNumber(value: number | null): string {
+  return value === null ? '—' : `${value}g`
+}
+
+export function mealToRow(email: string, userId: string, meal: StoredMeal): SavedMealRow {
+  const { recipe } = meal
   return {
     id: meal.id,
-    user_email: email,
+    user_id: userId,
+    created_at: meal.savedAt,
+    recipe_name: recipe.title,
     meal_time: meal.mealTime,
-    date: meal.date,
+    calories_kcal: Math.round(recipe.kcal),
+    protein_g: macroToNumber(recipe.macros[0]),
+    carbs_g: macroToNumber(recipe.macros[1]),
+    fat_g: macroToNumber(recipe.macros[2]),
+    ingredients: recipe.ingredients,
+    cooking_steps: recipe.steps,
+    health_safety_note: recipe.safetyNote,
+    user_email: email,
     saved_at: meal.savedAt,
-    rank: meal.recipe.rank,
-    rank_num: meal.recipe.rankNum,
-    label: meal.recipe.label,
-    tone: meal.recipe.tone,
-    title: meal.recipe.title,
-    prep_time: meal.recipe.time,
-    kcal: meal.recipe.kcal,
-    protein: meal.recipe.macros[0],
-    carbs: meal.recipe.macros[1],
-    fat: meal.recipe.macros[2],
-    ingredients: meal.recipe.ingredients,
-    allergens: meal.recipe.allergens,
-    steps: meal.recipe.steps,
-    safety_note: meal.recipe.safetyNote,
-    recipe_json: meal.recipe,
   }
 }
 
 export function rowToMeal(row: SavedMealRow): StoredMeal {
-  const fromJson = row.recipe_json ?? null
-  const recipe: StoredRecipe = fromJson ?? {
-    rank: row.rank || 'อันดับ ' + (row.rank_num ?? 3),
-    rankNum: row.rank_num ?? 3,
-    label: row.label || '',
-    tone: (row.tone as StoredRecipe['tone']) ?? 'ochre',
-    title: row.title || '',
-    time: row.prep_time || '',
-    kcal: Number(row.kcal) || 0,
-    macros: [row.protein || '0g', row.carbs || '0g', row.fat || '0g'],
-    ingredients: row.ingredients ?? [],
-    allergens: row.allergens ?? [],
-    steps: row.steps ?? [],
-    safetyNote: row.safety_note || '',
-  }
+  const savedAt = row.created_at ?? row.saved_at ?? new Date().toISOString()
   return {
     id: row.id,
-    savedAt: row.saved_at ? new Date(row.saved_at).toISOString() : new Date().toISOString(),
-    date: row.date || todayStr(),
-    mealTime: row.meal_time || 'lunch',
-    recipe,
+    savedAt,
+    date: savedAt.slice(0, 10),
+    mealTime: (row.meal_time as StoredMeal['mealTime']) || 'lunch',
+    recipe: {
+      rank: 'บันทึกไว้',
+      rankNum: 1,
+      label: 'เมนูที่บันทึกไว้',
+      tone: 'sage',
+      title: row.recipe_name,
+      time: '',
+      kcal: row.calories_kcal ?? 0,
+      macros: [
+        macroFromNumber(row.protein_g),
+        macroFromNumber(row.carbs_g),
+        macroFromNumber(row.fat_g),
+      ],
+      ingredients: row.ingredients ?? [],
+      allergens: [],
+      steps: row.cooking_steps ?? [],
+      safetyNote: row.health_safety_note ?? '',
+    },
   }
 }
 
 /* ── quota ────────────────────────────────────────────────────────── */
 
-export const QUOTA_MAX = 3
+export const QUOTA_MAX = DAILY_QUOTA_MAX
 
 export type DailyQuota = { date: string; used: number; max: number }
 
@@ -238,12 +306,15 @@ async function readQuota(db: SupabaseClient, userEmail: string): Promise<DailyQu
   if (error) throw error
 
   const row = data as QuotaRow | null
-  if (row && row.date === today) return toQuota(row)
+  if (row && row.date === today && row.max === QUOTA_MAX) return toQuota(row)
 
+  // Same-day rows keep their `used` count but pick up a changed limit;
+  // a new day resets the count.
+  const used = row && row.date === today ? row.used : 0
   const { data: fresh, error: resetError } = await db
     .from('quota')
     .upsert(
-      { user_email: userEmail, date: today, used: 0, max: QUOTA_MAX },
+      { user_email: userEmail, date: today, used, max: QUOTA_MAX },
       { onConflict: 'user_email' },
     )
     .select('*')
