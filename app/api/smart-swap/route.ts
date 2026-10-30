@@ -38,13 +38,13 @@ A user names a Thai dish (or a single ingredient) and a nutrition goal. Explain 
 
 === HARD RULES ===
 • Every substitution MUST serve the requested goal — never suggest a swap that works against it.
-• ratio is the swap ratio (e.g. "1:1", "1 ถ้วยแทน 2 ช้อนโต๊ะ") so a home cook can measure it.
+• ratio is the swap ratio (e.g. "1:1", "1 ถ้วยแทน 2 ช้อนโต๊ะ") so a home cook can measure it. MANDATE THAI UNITS ONLY (e.g., กรัม, ช้อนโต๊ะ, ถ้วย).
 • calorieImpactPct is the change from THAT single swap in percent (0 = no change, negative = fewer).
 • nutritionDelta is the sum of every substitution, in kcal / grams. Keep its sign consistent with the goal.
 • instructions: 4-6 short Thai steps for cooking the dish WITH the swapped ingredients applied, so the
-  cook never has to read the substitutions again. Never mention the original ingredients.
+  cook never has to read the substitutions again. Never mention the original ingredients. Mandate Thai units for any quantities mentioned in steps.
 • reason: one short Thai phrase naming the concrete benefit.
-• Every string in the JSON MUST be in THAI, except numbers, units and ratios.
+• Every string in the JSON MUST be in THAI, including all units and ratios. No English units (g, ml, tbsp) allowed.
 • Return ONLY a raw, valid, parseable JSON object matching the schema — no markdown, no code fences, no commentary.`;
 
 /**

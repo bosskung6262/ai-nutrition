@@ -5,24 +5,39 @@ import { useRouter } from 'next/navigation'
 import {
   Activity,
   Award,
-  ChevronDown,
-  ChevronUp,
+  Check,
   Clock,
+  Copy,
   Database,
   Dumbbell,
   Flame,
   History,
   Loader2,
+  PackagePlus,
   Plus,
+  Search,
   Server,
   Sparkles,
   Target,
+  Ticket,
   Trash2,
   Zap,
 } from 'lucide-react'
 import { useAuth } from '@/components/AuthProvider'
-import { getDailyQuota, loadProfile, removeSavedMeal } from '@/lib/store'
+import { ImportPlaylistModal } from '@/components/ImportPlaylistModal'
+import { PlaylistBuilder } from '@/components/PlaylistBuilder'
+import { PlaylistDetailModal } from '@/components/PlaylistDetailModal'
+import { RecipeInstructionModal } from '@/components/RecipeInstructionModal'
+import { ShareCodeModal } from '@/components/ShareCodeModal'
+import {
+  buildPlaylistShareUrl,
+  getDailyQuota,
+  loadProfile,
+  recipeToMealPlan,
+  removeSavedMeal,
+} from '@/lib/store'
 import { DAILY_QUOTA_MAX, type DailyQuota, type Profile, type SavedMeal } from '@/lib/types'
+import type { MealPlanItem, PlaylistPayload } from '@/types/meal-plan'
 
 const RANK_ICONS: Record<number, typeof Award> = {
   1: Award,
@@ -50,6 +65,31 @@ const CARD = 'rounded-2xl border border-[var(--border)] bg-[var(--surface)] shad
 const ICON_TILE =
   'grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-[var(--accent)]/25 text-[var(--primary-dark)]'
 
+/**
+ * Accepts either a raw share code (`NUTRI-7D-RZ9M7D`) or a full share URL
+ * (`https://host/dashboard?code=NUTRI-7D-RZ9M7D`) and returns just the code.
+ */
+function extractShareCode(input: string): string {
+  const value = input.trim()
+  if (!value) return ''
+  try {
+    const fromUrl = new URL(value).searchParams.get('code')
+    if (fromUrl) return fromUrl.trim().toUpperCase()
+  } catch {
+    /* not an absolute URL — fall through to the raw/fragment cases */
+  }
+  // A pasted `…?code=…` fragment without a scheme.
+  const match = value.match(/[?&]code=([^&\s]+)/)
+  if (match) {
+    try {
+      return decodeURIComponent(match[1]).trim().toUpperCase()
+    } catch {
+      return match[1].trim().toUpperCase()
+    }
+  }
+  return value.toUpperCase()
+}
+
 function formatThaiTimestamp(iso: string): string {
   try {
     const d = new Date(iso)
@@ -73,7 +113,22 @@ export default function DashboardPage() {
   const [savedLoading, setSavedLoading] = useState(false)
   const [savedVia, setSavedVia] = useState<'supabase' | 'fallback' | 'unknown'>('unknown')
   const [deleteBusy, setDeleteBusy] = useState<Set<string>>(new Set())
-  const [openCard, setOpenCard] = useState<number | null>(null)
+  const [detailFor, setDetailFor] = useState<SavedMeal | null>(null)
+  const [shareCodeSeed, setShareCodeSeed] = useState<{ title: string; meals: MealPlanItem[] } | null>(null)
+
+  // Meal Plan Playlist state
+  const [playlists, setPlaylists] = useState<PlaylistPayload[]>([])
+  const [codeInput, setCodeInput] = useState('')
+  const [codeBusy, setCodeBusy] = useState(false)
+  const [codeError, setCodeError] = useState<string | null>(null)
+  const [preview, setPreview] = useState<PlaylistPayload | null>(null)
+  const [importBusy, setImportBusy] = useState(false)
+  const [importError, setImportError] = useState<string | null>(null)
+  const [detailPlaylist, setDetailPlaylist] = useState<PlaylistPayload | null>(null)
+  const [isPlaylistBuilderOpen, setIsPlaylistBuilderOpen] = useState(false)
+  const [deletingCode, setDeletingCode] = useState<string | null>(null)
+  const [copiedCode, setCopiedCode] = useState<string | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
 
   const fetchSaved = useCallback(async () => {
     if (!user?.email) return
@@ -94,6 +149,68 @@ export default function DashboardPage() {
     }
   }, [user?.email])
 
+  const fetchPlaylists = useCallback(async () => {
+    if (!user?.email) return
+    try {
+      const res = await fetch('/api/playlists')
+      if (!res.ok) return
+      const data = (await res.json().catch(() => null)) as
+        | { playlists?: PlaylistPayload[] }
+        | null
+      setPlaylists(data?.playlists || [])
+    } catch {
+      /* keep whatever we already had */
+    }
+  }, [user?.email])
+
+  /**
+   * Load the profile from the `profiles` table so personalization (target
+   * calories, allergies, health conditions) survives a fresh browser session.
+   * Falls back to the session-scoped local cache when the API is unavailable.
+   */
+  const fetchProfile = useCallback(async () => {
+    try {
+      const res = await fetch('/api/profile')
+      if (res.ok) {
+        const data = (await res.json().catch(() => null)) as { profile?: Profile | null } | null
+        if (data?.profile) {
+          setProfile(data.profile)
+          return
+        }
+      }
+    } catch {
+      /* fall through to the local cache */
+    }
+    setProfile(loadProfile())
+  }, [])
+
+  /** Fetch a shared playlist by code and open the import confirmation modal. */
+  const loadPlaylist = useCallback(async (rawInput: string) => {
+    const code = extractShareCode(rawInput)
+    if (!code) return
+    setCodeBusy(true)
+    setCodeError(null)
+    setImportError(null)
+    try {
+      const res = await fetch(`/api/playlists/${encodeURIComponent(code)}`)
+      if (res.status === 404) {
+        setCodeError('ไม่พบแผนการกินนี้ หรือลิงก์ถูกตั้งเป็นส่วนตัว')
+        return
+      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = (await res.json().catch(() => null)) as { playlist?: PlaylistPayload } | null
+      if (!data?.playlist) {
+        setCodeError('ไม่พบแผนการกินนี้')
+        return
+      }
+      setPreview(data.playlist)
+    } catch {
+      setCodeError('ไม่สามารถดึงข้อมูลแผนการกินได้ในขณะนี้')
+    } finally {
+      setCodeBusy(false)
+    }
+  }, [])
+
   useEffect(() => {
     if (loading) return
     if (!user) {
@@ -101,9 +218,17 @@ export default function DashboardPage() {
       return
     }
     setQuota(getDailyQuota())
-    setProfile(loadProfile())
+    void fetchProfile()
     void fetchSaved()
-  }, [loading, user, router, fetchSaved])
+    void fetchPlaylists()
+
+    // URL / query-parameter import, e.g. /dashboard?code=NUTRI-3D-XXXX
+    const shared = new URLSearchParams(window.location.search).get('code')
+    if (shared) {
+      setCodeInput(shared)
+      void loadPlaylist(shared)
+    }
+  }, [loading, user, router, fetchProfile, fetchSaved, fetchPlaylists, loadPlaylist])
 
   if (loading || !user) {
     return (
@@ -132,16 +257,72 @@ export default function DashboardPage() {
         n.delete(id)
         return n
       })
-      if (openCard !== null) {
-        const foundIdx = saved.findIndex((m) => m.id === id)
-        if (foundIdx === openCard) setOpenCard(null)
-        else if (foundIdx !== -1 && foundIdx < openCard) setOpenCard((c) => (c as number) - 1)
-      }
+      setDetailFor((current) => (current?.id === id ? null : current))
     }
   }
 
-  const toggleCard = (idx: number) => {
-    setOpenCard((cur) => (cur === idx ? null : idx))
+  /** Offer the clicked meal first, then its siblings, when bundling a share code. */
+  const openShareCode = (meal: SavedMeal) => {
+    const ordered = [meal, ...saved.filter((item) => item.id !== meal.id)]
+    setShareCodeSeed({ title: meal.recipe.title, meals: ordered.map((item) => recipeToMealPlan(item.recipe)) })
+  }
+
+  /** Drop `?code=…` from the address bar once the import is done. */
+  const clearSharedCode = () => {
+    if (typeof window !== 'undefined' && window.location.search) {
+      window.history.replaceState(null, '', window.location.pathname)
+    }
+  }
+
+  const onConfirmImport = async () => {
+    if (!preview) return
+    setImportBusy(true)
+    setImportError(null)
+    try {
+      const res = await fetch('/api/playlists/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: preview.code }),
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      setPreview(null)
+      setCodeInput('')
+      clearSharedCode()
+      setToast('นำเข้าแผนการกินลง Dashboard เรียบร้อยแล้ว')
+      void fetchPlaylists()
+      setTimeout(() => setToast(null), 3200)
+    } catch {
+      setImportError('นำเข้าแผนการกินไม่สำเร็จ กรุณาลองใหม่อีกครั้ง')
+    } finally {
+      setImportBusy(false)
+    }
+  }
+
+  const onCopyShareUrl = async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(buildPlaylistShareUrl(code))
+      setCopiedCode(code)
+      setTimeout(() => setCopiedCode((c) => (c === code ? null : c)), 2000)
+    } catch {
+      /* clipboard unavailable — ignore */
+    }
+  }
+
+  /** Remove a saved playlist, then drop it from the local list. */
+  const onDeletePlaylist = async (code: string) => {
+    setDeletingCode(code)
+    try {
+      const res = await fetch(`/api/playlists/${encodeURIComponent(code)}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      setPlaylists((prev) => prev.filter((playlist) => playlist.code !== code))
+      setDetailPlaylist((current) => (current?.code === code ? null : current))
+      setToast('ลบแผนการกินเรียบร้อยแล้ว')
+    } catch {
+      setToast('ลบแผนการกินไม่สำเร็จ กรุณาลองใหม่อีกครั้ง')
+    } finally {
+      setDeletingCode(null)
+      setTimeout(() => setToast(null), 3000)
+    }
   }
 
   return (
@@ -156,8 +337,8 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        <div className="mb-5 grid grid-cols-1 gap-4 lg:grid-cols-[1.2fr_1fr]">
-          <div className={`${CARD} p-5 sm:p-6`}>
+        <div className="mb-5 grid grid-cols-1 items-stretch gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
+          <div className={`${CARD} flex h-full flex-col p-5 sm:p-6`}>
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
                 <span className={ICON_TILE}>
@@ -251,7 +432,7 @@ export default function DashboardPage() {
             )}
           </div>
 
-          <div className={`${CARD} p-5 sm:p-6`}>
+          <div className={`${CARD} flex h-full flex-col p-5 sm:p-6`}>
             <div className="mb-4 flex items-center gap-2.5">
               <span className={ICON_TILE}>
                 <Award className="h-4 w-4" />
@@ -271,17 +452,11 @@ export default function DashboardPage() {
               </span>
             </div>
 
-            <div className="mb-5 flex gap-2.5">
-              {Array.from({ length: quota.max }).map((_, i) => (
-                <div
-                  key={i}
-                  className={`h-2 flex-1 rounded-full transition-all duration-300 ${
-                    i < quota.used
-                      ? 'bg-[var(--card)] opacity-35'
-                      : 'bg-gradient-to-r from-[var(--accent)] to-[var(--brand)]'
-                  }`}
-                />
-              ))}
+            <div className="mb-3 h-2.5 w-full overflow-hidden rounded-full bg-[var(--card)]">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-[var(--accent)] to-[var(--brand)] transition-all duration-500"
+                style={{ width: `${quota.max > 0 ? Math.min(100, (quota.used / quota.max) * 100) : 0}%` }}
+              />
             </div>
 
             <div className="mb-5 flex justify-between text-xs text-[var(--muted)]">
@@ -289,21 +464,172 @@ export default function DashboardPage() {
               <span>รีเซ็ตใหม่ในวันพรุ่งนี้</span>
             </div>
 
-            <button
-              className={`btn-primary w-full ${FOCUS_RING}`}
-              disabled={remaining <= 0}
-              onClick={() => router.push(profile ? '/pantry' : '/onboarding')}
-            >
-              <Plus className="h-4 w-4" />
-              สร้างเมนูอาหารใหม่
-            </button>
+            <div className="mt-auto">
+              <button
+                className={`btn-primary w-full ${FOCUS_RING}`}
+                disabled={remaining <= 0}
+                onClick={() => router.push(profile ? '/pantry' : '/onboarding')}
+              >
+                <Plus className="h-4 w-4" />
+                สร้างเมนูอาหารใหม่
+              </button>
 
-            {remaining <= 0 && (
-              <div className="mt-2.5 text-center text-xs text-[var(--muted)]">
-                โควต้าวันนี้หมดแล้ว มาเจนเมนูใหม่พรุ่งนี้นะคะ
-              </div>
-            )}
+              {remaining <= 0 && (
+                <div className="mt-2.5 text-center text-xs text-[var(--muted)]">
+                  โควต้าวันนี้หมดแล้ว มาเจนเมนูใหม่พรุ่งนี้นะคะ
+                </div>
+              )}
+            </div>
           </div>
+        </div>
+
+        <div className={`${CARD} mb-5 p-5 sm:p-6`}>
+          <div className="mb-4 flex items-center gap-2.5">
+            <span className={ICON_TILE}>
+              <PackagePlus className="h-4 w-4" />
+            </span>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold tracking-wider text-[#708c77] uppercase">Meal Plan Playlist</span>
+              <h2 className="font-[var(--font-kanit)] text-xl font-semibold text-[var(--foreground)]">
+                นำเข้าแผนการกินด้วยโค้ด
+              </h2>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2.5 sm:flex-row">
+            <input
+              className="input-field flex-1"
+              placeholder="กรอกโค้ดแผนการกิน (เช่น NUTRI-3D-XXXX)"
+              value={codeInput}
+              onChange={(e) => setCodeInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void loadPlaylist(codeInput)
+              }}
+              disabled={codeBusy}
+            />
+            <button
+              className={`btn-primary ${FOCUS_RING}`}
+              onClick={() => void loadPlaylist(codeInput)}
+              disabled={codeBusy || !codeInput.trim()}
+            >
+              {codeBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              ดึงข้อมูลแผนการกิน
+            </button>
+          </div>
+          <p className="mt-2 text-[11px] text-[var(--muted)]">
+            วางลิงก์แชร์ทั้งลิงก์ก็ได้ ระบบจะดึงโค้ดให้อัตโนมัติ
+          </p>
+          {codeError && <p className="mt-2 text-xs text-[var(--color-danger)]">{codeError}</p>}
+        </div>
+
+        <div className={`${CARD} mb-5 p-5 sm:p-6`}>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className={ICON_TILE}>
+                <Sparkles className="h-4 w-4" />
+              </span>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold tracking-wider text-[#708c77] uppercase">My Playlists</span>
+                <h2 className="font-[var(--font-kanit)] text-xl font-semibold text-[var(--foreground)]">
+                  แผนการกินของฉัน
+                </h2>
+              </div>
+            </div>
+            <button
+              className={`btn-primary text-xs ${FOCUS_RING}`}
+              onClick={() => setIsPlaylistBuilderOpen(true)}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              สร้างแผนการกินใหม่
+            </button>
+          </div>
+
+          {playlists.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--bg)] p-8 text-center">
+              <div className="mb-1.5 font-[var(--font-kanit)] text-sm text-[var(--foreground)]">
+                ยังไม่มีแผนการกิน
+              </div>
+              <div className="text-xs text-[var(--muted)]">
+                เริ่มสร้างแผนการกินสำหรับหลายวันเพื่อติดตามโภชนาการที่ดียิ่งขึ้น
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {playlists.map((pl) => {
+                const isDeleting = deletingCode === pl.code
+                return (
+                  <div
+                    key={pl.code}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`ดูรายละเอียดแผน ${pl.title}`}
+                    onClick={() => setDetailPlaylist(pl)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        setDetailPlaylist(pl)
+                      }
+                    }}
+                    className={`group flex h-full cursor-pointer flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${FOCUS_RING}`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="tag-pill bg-primary/10 text-primary border-none text-[10px] py-1 px-2.5">
+                        {pl.days} วัน · {pl.meals.length} เมนู
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          void onDeletePlaylist(pl.code)
+                        }}
+                        disabled={isDeleting}
+                        className={`grid h-7 w-7 place-items-center rounded-full text-[var(--color-danger)] transition-all duration-300 disabled:cursor-wait ${FOCUS_RING} ${
+                          isDeleting ? 'bg-[var(--color-danger)]/20' : 'bg-[var(--color-danger)]/10'
+                        }`}
+                        aria-label={`ลบแผน ${pl.title}`}
+                      >
+                        {isDeleting ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                    </div>
+                    <h3 className="mt-2 font-[var(--font-kanit)] text-[15px] leading-snug font-semibold text-[var(--foreground)]">
+                      {pl.title}
+                    </h3>
+                    <p className="mt-1 text-[10px] text-[var(--muted)]">โค้ด {pl.code}</p>
+                    <div className="mt-auto flex flex-col gap-2 pt-3">
+                      <button
+                        className={`btn-ghost w-full text-xs ${FOCUS_RING}`}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          setDetailPlaylist(pl)
+                        }}
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        ดูรายละเอียดแผน
+                      </button>
+                      <button
+                        className={`btn-secondary w-full text-xs ${FOCUS_RING}`}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          void onCopyShareUrl(pl.code)
+                        }}
+                      >
+                        {copiedCode === pl.code ? (
+                          <Check className="h-3.5 w-3.5" />
+                        ) : (
+                          <Copy className="h-3.5 w-3.5" />
+                        )}
+                        {copiedCode === pl.code ? 'คัดลอกลิงก์แล้ว' : 'คัดลอกลิงก์แชร์'}
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         <div className={`${CARD} p-5 sm:p-6`}>
@@ -367,24 +693,34 @@ export default function DashboardPage() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {saved.map((meal, idx) => {
+            <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {saved.map((meal) => {
                 const Icon = RANK_ICONS[meal.recipe.rankNum] || Award
-                const expanded = openCard === idx
                 const isDeleting = deleteBusy.has(meal.id)
                 return (
                   <div
                     key={meal.id}
-                    className={`group relative flex flex-col gap-2.5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${
-                      expanded ? '' : 'min-h-[300px]'
-                    }`}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`ดูสูตรเต็ม ${meal.recipe.title}`}
+                    onClick={() => setDetailFor(meal)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        setDetailFor(meal)
+                      }
+                    }}
+                    className={`group relative flex h-full cursor-pointer flex-col gap-2.5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${FOCUS_RING}`}
                   >
                     <button
-                      onClick={() => onDeleteSaved(meal.id)}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        void onDeleteSaved(meal.id)
+                      }}
                       disabled={isDeleting}
-                      className={`absolute top-3 right-3 z-[2] grid h-7 w-7 place-items-center rounded-full text-[var(--color-danger)] transition-all duration-300 disabled:cursor-wait ${FOCUS_RING} ${
+                      className={`absolute top-3 right-3 z-[2] grid h-7 w-7 place-items-center rounded-full text-[var(--color-danger)] opacity-0 transition-all duration-300 group-hover:opacity-100 focus-visible:opacity-100 disabled:cursor-wait ${FOCUS_RING} ${
                         isDeleting ? 'bg-[var(--color-danger)]/20' : 'bg-[var(--color-danger)]/10'
-                      } ${expanded ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100'}`}
+                      }`}
                       aria-label="ลบ"
                     >
                       {isDeleting ? (
@@ -407,7 +743,7 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    <h3 className="font-[var(--font-kanit)] text-[15px] leading-snug font-semibold text-[var(--foreground)]">
+                    <h3 className="line-clamp-2 font-[var(--font-kanit)] text-[15px] leading-snug font-semibold text-[var(--foreground)]">
                       {meal.recipe.title}
                     </h3>
 
@@ -422,7 +758,7 @@ export default function DashboardPage() {
                       )}
                     </div>
 
-                    <div className="mt-1 grid grid-cols-3 gap-1.5 border-t border-[var(--border)] pt-3">
+                    <div className="grid grid-cols-3 gap-1.5 border-t border-[var(--border)] pt-3">
                       <div className="rounded-xl bg-[var(--bg)] p-2 text-center">
                         <b className="text-[13px] font-semibold text-[var(--foreground)]">{meal.recipe.macros[0]}</b>
                         <div className="text-[10px] text-[var(--muted)]">โปรตีน</div>
@@ -437,15 +773,15 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    <div className={expanded ? 'pt-2.5' : 'mt-auto'}>
+                    <div className="mt-auto">
                       <div className="mb-2 font-[var(--font-kanit)] text-xs font-semibold text-[var(--foreground)]">
                         ส่วนผสม
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-[13px] leading-relaxed text-[var(--muted)]">
-                        {(expanded ? meal.recipe.ingredients : meal.recipe.ingredients.slice(0, 3)).map((ing, j) => (
+                        {meal.recipe.ingredients.slice(0, 3).map((ing, j) => (
                           <div key={j} className="truncate">• {ing}</div>
                         ))}
-                        {!expanded && meal.recipe.ingredients.length > 3 && (
+                        {meal.recipe.ingredients.length > 3 && (
                           <div className="text-[var(--primary)] text-xs font-medium">
                             +{meal.recipe.ingredients.length - 3} เพิ่มเติม
                           </div>
@@ -453,18 +789,30 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => toggleCard(idx)}
-                      className={`mt-1.5 flex w-full items-center justify-between border-t border-[var(--border)] pt-2.5 text-xs font-semibold text-[var(--primary)] ${FOCUS_RING}`}
-                    >
-                      <span>{expanded ? 'ย่อรายการ' : 'ดูส่วนผสมและข้อมูลเต็ม'}</span>
-                      {expanded ? (
-                        <ChevronUp className="h-3.5 w-3.5" />
-                      ) : (
-                        <ChevronDown className="h-3.5 w-3.5" />
-                      )}
-                    </button>
+                    <div className="grid grid-cols-2 gap-2 border-t border-[var(--border)] pt-3">
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          setDetailFor(meal)
+                        }}
+                        className={`btn-ghost text-xs ${FOCUS_RING}`}
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        ดูสูตรเต็ม
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          openShareCode(meal)
+                        }}
+                        className={`btn-secondary text-xs ${FOCUS_RING}`}
+                      >
+                        <Ticket className="h-3.5 w-3.5" />
+                        สร้างโค้ดแชร์
+                      </button>
+                    </div>
                   </div>
                 )
               })}
@@ -472,6 +820,68 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {toast && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-4">
+          <div className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm font-medium text-[var(--foreground)] shadow-lg">
+            {toast}
+          </div>
+        </div>
+      )}
+
+      {preview && (
+        <ImportPlaylistModal
+          playlist={preview}
+          busy={importBusy}
+          error={importError}
+          onClose={() => {
+            if (importBusy) return
+            setPreview(null)
+          }}
+          onConfirm={() => void onConfirmImport()}
+        />
+      )}
+
+      {detailPlaylist && (
+        <PlaylistDetailModal
+          playlist={detailPlaylist}
+          profile={profile}
+          deleting={deletingCode === detailPlaylist.code}
+          onDelete={() => void onDeletePlaylist(detailPlaylist.code)}
+          onClose={() => setDetailPlaylist(null)}
+        />
+      )}
+
+      {isPlaylistBuilderOpen && (
+        <PlaylistBuilder
+          savedMeals={saved}
+          profile={profile}
+          onCreated={() => {
+            setIsPlaylistBuilderOpen(false)
+            void fetchPlaylists()
+            setToast('สร้างแผนการกินใหม่เรียบร้อยแล้ว')
+            setTimeout(() => setToast(null), 3000)
+          }}
+          onClose={() => setIsPlaylistBuilderOpen(false)}
+        />
+      )}
+
+      {detailFor && (
+        <RecipeInstructionModal
+          recipe={detailFor.recipe}
+          onCreateShareCode={() => openShareCode(detailFor)}
+          onClose={() => setDetailFor(null)}
+        />
+      )}
+
+      {shareCodeSeed && (
+        <ShareCodeModal
+          meals={shareCodeSeed.meals}
+          defaultTitle={shareCodeSeed.title}
+          onCreated={() => void fetchPlaylists()}
+          onClose={() => setShareCodeSeed(null)}
+        />
+      )}
     </div>
   )
 }

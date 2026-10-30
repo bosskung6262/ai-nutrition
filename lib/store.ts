@@ -1,6 +1,7 @@
 'use client'
 
 import type { AuthUser, DailyQuota, GenerateResponse, Pantry, Profile, Recipe, SavedMeal } from './types'
+import type { MealPlanItem } from '@/types/meal-plan'
 import { DAILY_QUOTA_MAX } from './types'
 import { Award, Clock, Dumbbell } from 'lucide-react'
 
@@ -31,6 +32,31 @@ const rankMeta: Record<number, { rank: string; label: string; icon: typeof Award
   1: { rank: 'อันดับ 1', label: 'แนะนำมากที่สุดสำหรับคุณ', icon: Award, tone: 'gold' },
   2: { rank: 'อันดับ 2', label: 'ทางเลือกสุขภาพดี', icon: Dumbbell, tone: 'sage' },
   3: { rank: 'อันดับ 3', label: 'ทำง่ายรวดเร็ว', icon: Clock, tone: 'ochre' },
+}
+
+/**
+ * Convert a generated/saved recipe into the shareable plan-item shape.
+ * Macro strings look like `30g`, but Smart Swap deltas look like `Δ+12g`, so the
+ * first number in the string wins instead of a strict `parseFloat`.
+ */
+export function recipeToMealPlan(recipe: Recipe): MealPlanItem {
+  const num = (value: string) => {
+    const match = value.match(/-?\d+(?:\.\d+)?/)
+    return match ? Number.parseFloat(match[0]) : 0
+  }
+  return {
+    mealTitle: recipe.title,
+    calories: recipe.kcal,
+    macros: {
+      protein: num(recipe.macros[0]),
+      carbs: num(recipe.macros[1]),
+      fat: num(recipe.macros[2]),
+    },
+    // Carried along so the playlist detail viewer can show the full recipe.
+    ingredients: recipe.ingredients.filter(Boolean).slice(0, 40),
+    steps: recipe.steps.filter(Boolean).slice(0, 40),
+    healthSafetyNote: recipe.safetyNote,
+  }
 }
 
 export function toRecipe(api: GenerateResponse['recipes'][number]): Recipe {
@@ -229,6 +255,15 @@ export function saveMeal(recipe: Recipe, mealTime: SavedMeal['mealTime']): Saved
 export function removeSavedMeal(id: string) {
   const all = getSavedMeals().filter((m) => m.id !== id)
   localStorage.setItem(SAVED_KEY, JSON.stringify(all))
+}
+
+/**
+ * Share link for a playlist code. Built from `window.location.origin` so the
+ * same code resolves on `http://localhost:3000` and on the deployed domain.
+ */
+export function buildPlaylistShareUrl(code: string): string {
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  return `${origin}/dashboard?code=${encodeURIComponent(code)}`
 }
 
 export function calcBMR(profile: Profile): number {

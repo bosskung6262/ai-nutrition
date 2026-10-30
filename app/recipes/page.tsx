@@ -6,9 +6,11 @@ import { ArrowLeft, BookmarkCheck, Plus, Sparkles, Target, UtensilsCrossed } fro
 import { useAuth } from '@/components/AuthProvider'
 import { RecipeCard } from '@/components/RecipeCard'
 import { RecipeInstructionModal } from '@/components/RecipeInstructionModal'
+import { ShareCodeModal } from '@/components/ShareCodeModal'
 import { ShareModal } from '@/components/ShareModal'
-import { getDailyQuota, loadPantry, loadResult, saveMeal, toRecipe } from '@/lib/store'
+import { getDailyQuota, loadPantry, loadResult, recipeToMealPlan, saveMeal, toRecipe } from '@/lib/store'
 import { DAILY_QUOTA_MAX, type Recipe } from '@/lib/types'
+import type { MealPlanItem } from '@/types/meal-plan'
 
 export default function RecipesPage() {
   const { user, loading } = useAuth()
@@ -23,6 +25,7 @@ export default function RecipesPage() {
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const [instructionFor, setInstructionFor] = useState<Recipe | null>(null)
   const [shareFor, setShareFor] = useState<Recipe | null>(null)
+  const [shareCodeSeed, setShareCodeSeed] = useState<{ title: string; meals: MealPlanItem[] } | null>(null)
   const [quotaRemaining, setQuotaRemaining] = useState(0)
   const [toast, setToast] = useState<string | null>(null)
 
@@ -86,6 +89,12 @@ export default function RecipesPage() {
     setTimeout(() => setToast(null), 3200)
   }
 
+  /** Bundle the generated meal (first) with its siblings into a share code. */
+  const openShareCode = (recipe: Recipe) => {
+    const ordered = [recipe, ...recipes.filter((item) => item !== recipe)]
+    setShareCodeSeed({ title: recipe.title, meals: ordered.map(recipeToMealPlan) })
+  }
+
   if (loading || !user || !resultData) {
     return (
       <div className="grid min-h-screen place-items-center bg-[var(--bg)]">
@@ -147,6 +156,7 @@ export default function RecipesPage() {
                     onOpenInstructions={setInstructionFor}
                     onSave={() => void onSave(recipe)}
                     onShare={setShareFor}
+                    onShareCode={openShareCode}
                   />
                 )
               })}
@@ -173,8 +183,21 @@ export default function RecipesPage() {
         </div>
       )}
 
-      {instructionFor && <RecipeInstructionModal recipe={instructionFor} onClose={() => setInstructionFor(null)} />}
+      {instructionFor && (
+        <RecipeInstructionModal
+          recipe={instructionFor}
+          onCreateShareCode={openShareCode}
+          onClose={() => setInstructionFor(null)}
+        />
+      )}
       {shareFor && <ShareModal recipe={shareFor} mealTimeLabel={mealTimeLabel} onClose={() => setShareFor(null)} />}
+      {shareCodeSeed && (
+        <ShareCodeModal
+          meals={shareCodeSeed.meals}
+          defaultTitle={shareCodeSeed.title}
+          onClose={() => setShareCodeSeed(null)}
+        />
+      )}
     </div>
   )
 }

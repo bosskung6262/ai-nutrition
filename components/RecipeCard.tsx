@@ -1,6 +1,6 @@
 'use client'
 
-import { Bookmark, BookmarkCheck, Clock3, Flame, Share2, UtensilsCrossed } from 'lucide-react'
+import { Bookmark, BookmarkCheck, Clock3, Flame, Share2, Ticket, UtensilsCrossed } from 'lucide-react'
 import type { Recipe } from '@/lib/types'
 
 const TONE_BADGE: Record<Recipe['tone'], string> = {
@@ -15,9 +15,10 @@ interface RecipeCardProps {
   onOpenInstructions: (recipe: Recipe) => void
   onSave: () => void
   onShare: (recipe: Recipe) => void
+  onShareCode: (recipe: Recipe) => void
 }
 
-export function RecipeCard({ recipe, isSaved, onOpenInstructions, onSave, onShare }: RecipeCardProps) {
+export function RecipeCard({ recipe, isSaved, onOpenInstructions, onSave, onShare, onShareCode }: RecipeCardProps) {
   const Icon = recipe.icon
   const macroLabels = ['โปรตีน', 'คาร์โบ', 'ไขมัน']
 
@@ -75,6 +76,15 @@ export function RecipeCard({ recipe, isSaved, onOpenInstructions, onSave, onShar
             แชร์
           </button>
         </div>
+        <button
+          type="button"
+          onClick={() => onShareCode(recipe)}
+          className="btn-secondary w-full px-3 py-3 text-xs"
+          aria-label={`สร้างโค้ดแชร์แผนนี้ ${recipe.title}`}
+        >
+          <Ticket className="size-4" />
+          สร้างโค้ดแชร์แผนนี้
+        </button>
       </div>
     </article>
   )

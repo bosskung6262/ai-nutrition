@@ -1,16 +1,18 @@
 'use client'
 
 import { useRef } from 'react'
-import { AlertTriangle, Clock3, Flame, Leaf, X } from 'lucide-react'
+import { AlertTriangle, Clock3, Flame, Leaf, Ticket, X } from 'lucide-react'
 import { useModalA11y } from '@/lib/use-modal-a11y'
 import type { Recipe } from '@/lib/types'
 
 interface RecipeInstructionModalProps {
   recipe: Recipe
+  /** When provided, shows the "สร้างโค้ดแชร์" action in the footer. */
+  onCreateShareCode?: (recipe: Recipe) => void
   onClose: () => void
 }
 
-export function RecipeInstructionModal({ recipe, onClose }: RecipeInstructionModalProps) {
+export function RecipeInstructionModal({ recipe, onCreateShareCode, onClose }: RecipeInstructionModalProps) {
   const cardRef = useRef<HTMLDivElement>(null)
   useModalA11y(cardRef, onClose)
 
@@ -26,6 +28,14 @@ export function RecipeInstructionModal({ recipe, onClose }: RecipeInstructionMod
           <div className="mt-3 flex flex-wrap gap-4 text-sm text-[var(--muted)]">
             <span className="inline-flex items-center gap-1"><Clock3 className="size-4" />{recipe.time}</span>
             <span className="inline-flex items-center gap-1 font-semibold text-[var(--color-gold)]"><Flame className="size-4" />{recipe.kcal.toLocaleString()} kcal</span>
+          </div>
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            {(['โปรตีน', 'คาร์โบ', 'ไขมัน'] as const).map((label, index) => (
+              <div key={label} className="rounded-2xl bg-[var(--bg)] p-2.5 text-center">
+                <b className="block font-[var(--font-kanit)] text-sm font-semibold text-[var(--foreground)]">{recipe.macros[index]}</b>
+                <span className="text-[11px] text-[var(--muted)]">{label}</span>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -63,7 +73,19 @@ export function RecipeInstructionModal({ recipe, onClose }: RecipeInstructionMod
             <p className="mt-1 text-sm leading-6 text-[var(--primary-dark)]">{recipe.safetyNote}</p>
           </div>
         </div>
-        <button type="button" className="btn-secondary mt-6 w-full" onClick={onClose}>ปิด</button>
+        <div className="mt-6 flex flex-col gap-2.5 sm:flex-row">
+          <button type="button" className="btn-secondary w-full sm:flex-1" onClick={onClose}>ปิด</button>
+          {onCreateShareCode && (
+            <button
+              type="button"
+              className="btn-primary w-full sm:flex-1"
+              onClick={() => onCreateShareCode(recipe)}
+            >
+              <Ticket className="size-4" />
+              สร้างโค้ดแชร์
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )

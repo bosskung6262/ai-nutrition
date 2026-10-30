@@ -6,7 +6,6 @@ import {
   isSupabaseConfigError,
   mealToRow,
   rowToMeal,
-  stableUserId,
   todayStr,
 } from '@/lib/supabase/data'
 import type { SavedMealRow, StoredMeal, StoredRecipe } from '@/lib/supabase/data'
@@ -43,10 +42,6 @@ async function sessionEmail(): Promise<string | null> {
   return verifySession(cookieStore.get(SESSION_COOKIE)?.value)
 }
 
-function genId(): string {
-  return 'm_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4)
-}
-
 export async function POST(req: Request) {
   const STEP = '[POST /api/saved-meals]'
   try {
@@ -66,7 +61,9 @@ export async function POST(req: Request) {
     }
 
     const meal: StoredMeal = {
-      id: genId(),
+      // Valid UUID v4 — `saved_meals.id` is a uuid column (a `m_…` string
+      // triggered 22P02 invalid input syntax for type uuid).
+      id: crypto.randomUUID(),
       savedAt: new Date().toISOString(),
       date: todayStr(),
       mealTime: data.mealTime,
@@ -76,7 +73,7 @@ export async function POST(req: Request) {
     const db = getDb()
     const { error } = await db
       .from('saved_meals')
-      .insert(mealToRow(email, await stableUserId(email), meal))
+      .insert(mealToRow(email, meal))
     if (error) throw error
 
     console.info(`${STEP} Saved meal ${meal.id} for ${email}`)

@@ -16,12 +16,15 @@ import {
   Repeat,
   Share2,
   Sparkles,
+  Ticket,
 } from 'lucide-react'
 import { useAuth } from '@/components/AuthProvider'
+import { ShareCodeModal } from '@/components/ShareCodeModal'
 import { ShareModal } from '@/components/ShareModal'
 import { useSmartSwap } from '@/hooks/useSmartSwap'
-import { loadPantry, saveMeal } from '@/lib/store'
+import { loadPantry, recipeToMealPlan, saveMeal } from '@/lib/store'
 import type { Recipe } from '@/lib/types'
+import type { MealPlanItem } from '@/types/meal-plan'
 import type { SwapGoal } from '@/types/smart-swap'
 
 /** Labels mirror the server's GOAL_LABEL map in app/api/smart-swap/route.ts. */
@@ -52,6 +55,7 @@ export default function SmartSwapPage() {
   const [submittedQuery, setSubmittedQuery] = useState('')
   const [submittedGoal, setSubmittedGoal] = useState<SwapGoal>('lower_calorie')
   const [shareOpen, setShareOpen] = useState(false)
+  const [shareCodeSeed, setShareCodeSeed] = useState<{ title: string; meals: MealPlanItem[] } | null>(null)
   const [saved, setSaved] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
 
@@ -109,8 +113,37 @@ export default function SmartSwapPage() {
 
   // The result only carries differences, while /api/saved-meals expects absolute
   // values — so we persist a self-describing "Δ from the original" record.
+  const swapRecipe: Recipe | null = data
+    ? {
+        rank: 'ผลต่างสูตร',
+        rankNum: 1,
+        label: `ผลต่างจากสูตรเดิม · ${goalLabel}`,
+        icon: Repeat,
+        tone: 'sage',
+        title: `${submittedQuery || data.originalItem} · ${goalLabel}`,
+        time: '—',
+        kcal: Math.max(1, Math.round(Math.abs(data.nutritionDelta.calorieDiff))),
+        macros: [
+          `Δ${signed(data.nutritionDelta.proteinDiff)}g`,
+          `Δ${signed(data.nutritionDelta.carbsDiff)}g`,
+          `Δ${signed(data.nutritionDelta.fatDiff)}g`,
+        ],
+        ingredients: data.suggestedSubstitutions.map(
+          (swap) => `${swap.originalIngredient} → ${swap.replacementIngredient} (${swap.ratio})`,
+        ),
+        allergens: [],
+        steps: data.instructions ?? [],
+        safetyNote: 'ค่าที่แสดงคือผลต่างจากสูตรเดิม ไม่ใช่ค่าสัมบูรณ์',
+      }
+    : null
+
+  const onOpenShareCode = () => {
+    if (!swapRecipe) return
+    setShareCodeSeed({ title: swapRecipe.title, meals: [recipeToMealPlan(swapRecipe)] })
+  }
+
   const onSave = async () => {
-    if (!data || saved) {
+    if (!data || !swapRecipe || saved) {
       if (saved) {
         setToast('เมนูนี้ถูกบันทึกไว้แล้วในคลังของคุณ')
         setTimeout(() => setToast(null), 2600)
@@ -118,29 +151,8 @@ export default function SmartSwapPage() {
       return
     }
 
-    const title = `${submittedQuery || data.originalItem} · ${goalLabel}`
-    const recipe: Recipe = {
-      rank: 'ผลต่างสูตร',
-      rankNum: 1,
-      label: `ผลต่างจากสูตรเดิม · ${goalLabel}`,
-      icon: Repeat,
-      tone: 'sage',
-      title,
-      time: '—',
-      kcal: Math.max(1, Math.round(Math.abs(data.nutritionDelta.calorieDiff))),
-      macros: [
-        `Δ${signed(data.nutritionDelta.proteinDiff)}g`,
-        `Δ${signed(data.nutritionDelta.carbsDiff)}g`,
-        `Δ${signed(data.nutritionDelta.fatDiff)}g`,
-      ],
-      ingredients: data.suggestedSubstitutions.map(
-        (swap) => `${swap.originalIngredient} → ${swap.replacementIngredient} (${swap.ratio})`,
-      ),
-      allergens: [],
-      steps: data.instructions ?? [],
-      safetyNote: 'ค่าที่แสดงคือผลต่างจากสูตรเดิม ไม่ใช่ค่าสัมบูรณ์',
-    }
-
+    const title = swapRecipe.title
+    const recipe = swapRecipe
     const mealId = (loadPantry()?.mealTime ?? 'lunch') as 'breakfast' | 'lunch' | 'dinner'
     saveMeal(recipe, mealId)
     setSaved(true)
@@ -396,6 +408,14 @@ export default function SmartSwapPage() {
                 แชร์
               </button>
             </div>
+            <button
+              type="button"
+              onClick={onOpenShareCode}
+              className="btn-secondary mt-2 w-full px-3 py-3 text-xs"
+            >
+              <Ticket className="size-4" />
+              สร้างโค้ดแชร์แผนนี้
+            </button>
             </>
           )}
 
@@ -409,6 +429,14 @@ export default function SmartSwapPage() {
                 nutritionDelta: data.nutritionDelta,
               }}
               onClose={() => setShareOpen(false)}
+            />
+          )}
+
+          {shareCodeSeed && (
+            <ShareCodeModal
+              meals={shareCodeSeed.meals}
+              defaultTitle={shareCodeSeed.title}
+              onClose={() => setShareCodeSeed(null)}
             />
           )}
         </div>

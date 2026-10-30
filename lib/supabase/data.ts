@@ -1,5 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { CreateMealPlanInput, MealPlanItem, MealPlanPayload } from '@/types/meal-plan'
+import type {
+  CreateMealPlanInput,
+  MealPlanItem,
+  MealPlanPayload,
+  MealPlanSchedule,
+  PlaylistPayload,
+  ShoppingItem,
+} from '@/types/meal-plan'
+import { aggregateIngredients } from '@/lib/meal-plan-utils'
 import { DAILY_QUOTA_MAX } from '@/lib/types'
 import { createAdminClient } from './server'
 
@@ -166,6 +174,15 @@ export function rowToProfile(row: ProfileRow, userEmail: string): SavedProfile {
   }
 }
 
+/** Fetch a user's profile from the database. */
+export async function getProfile(email: string): Promise<SavedProfile | null> {
+  const db = getDb()
+  const id = await stableUserId(email)
+  const { data, error } = await db.from('profiles').select('*').eq('id', id).maybeSingle()
+  if (error) throw error
+  return data ? rowToProfile(data as ProfileRow, email) : null
+}
+
 /* ── saved_meals ──────────────────────────────────────────────────── */
 
 export type StoredRecipe = {
@@ -198,7 +215,7 @@ export type StoredMeal = {
  */
 export type SavedMealRow = {
   id: string
-  user_id: string
+  user_id: string | null
   created_at: string | null
   recipe_name: string
   meal_time: string | null
@@ -224,11 +241,16 @@ function macroFromNumber(value: number | null): string {
   return value === null ? '—' : `${value}g`
 }
 
-export function mealToRow(email: string, userId: string, meal: StoredMeal): SavedMealRow {
+/**
+ * `user_id` is deliberately omitted: the column carries a foreign key into a
+ * `users` table that this cookie-only auth never populates (writing our derived
+ * uuid there raised 23503). Rows are owned by `user_email` instead.
+ */
+export function mealToRow(email: string, meal: StoredMeal): SavedMealRow {
   const { recipe } = meal
   return {
     id: meal.id,
-    user_id: userId,
+    user_id: null,
     created_at: meal.savedAt,
     recipe_name: recipe.title,
     meal_time: meal.mealTime,
@@ -366,16 +388,27 @@ export async function consumeQuota(userEmail: string): Promise<QuotaResult> {
   return { ok: false, remaining: 0, quota: seen ?? { date: todayStr(), used: 0, max: QUOTA_MAX } }
 }
 
-/* ── meal_plans ───────────────────────────────────────────────────── */
+/* ── meal_plans (also backs the Meal Plan Playlist share codes) ───── */
 
 export const MEAL_PLANS_MAX_PER_USER = 50
+
+/** Shape of the JSON stored in `meal_plans.plan_data` (the real column). */
+export type MealPlanData = {
+  days?: number
+  meals: MealPlanItem[]
+  tags?: string[]
+  schedule?: MealPlanSchedule
+  shoppingList?: ShoppingItem[]
+  /** Content hash — lets an identical plan reuse its existing share code. */
+  hash?: string
+}
 
 export type MealPlanRow = {
   id: string
   user_email: string
   title: string
   description: string | null
-  meals: MealPlanItem[] | null
+  plan_data: MealPlanData | null
   is_public: boolean
   created_at: string
 }
@@ -399,7 +432,10 @@ export function rowToMealPlan(row: MealPlanRow, origin: string): MealPlanPayload
     id: row.id,
     title: row.title,
     description: row.description ?? undefined,
-    meals: row.meals ?? [],
+    tags: row.plan_data?.tags ?? [],
+    schedule: row.plan_data?.schedule,
+    shoppingList: row.plan_data?.shoppingList,
+    meals: row.plan_data?.meals ?? [],
     shareUrl: shareUrlFor(row.id, origin),
     createdAt: row.created_at,
   }
@@ -419,7 +455,12 @@ export async function createMealPlan(
       user_email: userEmail,
       title: input.title,
       description: input.description ?? null,
-      meals: input.meals,
+      plan_data: {
+        meals: input.meals,
+        tags: input.tags,
+        schedule: input.schedule as MealPlanSchedule,
+        shoppingList: aggregateIngredients(input.meals),
+      },
       is_public: true,
       created_at: new Date().toISOString(),
     })
@@ -459,4 +500,201 @@ export async function getPublicMealPlan(
     .maybeSingle()
   if (error) throw error
   return data ? rowToMealPlan(data as MealPlanRow, origin) : null
+}
+
+/* ── meal playlists (share codes stored as the row id) ────────────── */
+
+// No `share_code` column exists, and no migration is needed: the code IS the
+// `meal_plans.id` (a text primary key), so a share link is directly queryable.
+const SHARE_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+
+/** `NUTRI-{days}D-XXXXXX`, e.g. `NUTRI-3D-7WKQ2M`. */
+export const SHARE_CODE_PATTERN = /^NUTRI-\d{1,2}D-[A-Z0-9]{4,8}$/
+
+function newShareCode(days: number): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(6))
+  let suffix = ''
+  for (const byte of bytes) suffix += SHARE_CODE_ALPHABET[byte % SHARE_CODE_ALPHABET.length]
+  return `NUTRI-${days}D-${suffix}`
+}
+
+/** `/dashboard?code=…` — an import link that works on localhost and production. */
+export function playlistShareUrl(code: string, origin: string): string {
+  return new URL(`/dashboard?code=${encodeURIComponent(code)}`, origin).toString()
+}
+
+function rowToPlaylist(row: MealPlanRow, origin: string): PlaylistPayload {
+  return {
+    code: row.id,
+    title: row.title,
+    description: row.description ?? undefined,
+    tags: row.plan_data?.tags ?? [],
+    days: row.plan_data?.days ?? 0,
+    schedule: row.plan_data?.schedule,
+    shoppingList: row.plan_data?.shoppingList,
+    meals: row.plan_data?.meals ?? [],
+    shareUrl: playlistShareUrl(row.id, origin),
+    createdAt: row.created_at,
+  }
+}
+
+type PlaylistInsert = {
+  title: string
+  description?: string
+  tags?: string[]
+  days: number
+  schedule?: MealPlanSchedule
+  meals: MealPlanItem[]
+}
+
+/** A created (or reused) playlist, plus whether an existing code was returned. */
+export type PlaylistWriteResult = { playlist: PlaylistPayload; reused: boolean }
+
+/**
+ * Deterministic content hash of a plan's meals + duration, so the same payload
+ * always maps to the same code and never duplicates a row. Only the meaningful
+ * fields are included — cosmetic metadata is deliberately excluded.
+ */
+async function playlistHash(days: number, meals: MealPlanItem[]): Promise<string> {
+  const canonical = JSON.stringify({
+    days,
+    meals: meals.map((meal) => ({
+      mealTitle: meal.mealTitle,
+      calories: meal.calories,
+      protein: meal.macros.protein,
+      carbs: meal.macros.carbs,
+      fat: meal.macros.fat,
+    })),
+  })
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonical))
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+/** The caller's own playlist with this exact content, if they already have one. */
+async function findPlaylistByHash(
+  userEmail: string,
+  hash: string,
+): Promise<MealPlanRow | null> {
+  const db = getDb()
+  const { data, error } = await db.from('meal_plans').select('*').eq('user_email', userEmail)
+  if (error) throw error
+  return ((data ?? []) as MealPlanRow[]).find((row) => row.plan_data?.hash === hash) ?? null
+}
+
+/**
+ * Insert a playlist whose `id` is the share code; retries on code collision.
+ * Reuses an existing code when the caller already has an identical plan.
+ */
+export async function createPlaylist(
+  userEmail: string,
+  input: PlaylistInsert,
+  origin: string,
+): Promise<PlaylistWriteResult> {
+  const db = getDb()
+  const hash = await playlistHash(input.days, input.meals)
+
+  const existing = await findPlaylistByHash(userEmail, hash)
+  if (existing) {
+    return { playlist: rowToPlaylist(existing, origin), reused: true }
+  }
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const code = newShareCode(input.days)
+    const { data, error } = await db
+      .from('meal_plans')
+      .insert({
+        id: code,
+        user_email: userEmail,
+        title: input.title,
+        description: input.description ?? null,
+        plan_data: {
+          days: input.days,
+          meals: input.meals,
+          tags: input.tags,
+          schedule: input.schedule,
+          shoppingList: aggregateIngredients(input.meals),
+          hash,
+        },
+        is_public: true,
+        created_at: new Date().toISOString(),
+      })
+      .select('*')
+      .single()
+    if (!error) return { playlist: rowToPlaylist(data as MealPlanRow, origin), reused: false }
+    // 23505 = unique_violation on the primary key → regenerate the code.
+    if (error.code !== '23505') throw error
+  }
+  throw new Error('ไม่สามารถสร้างโค้ดเฉพาะได้ กรุณาลองใหม่อีกครั้ง')
+}
+
+/** Public read by share code — non-public (missing) playlists return null. */
+export async function getPlaylistByCode(
+  code: string,
+  origin: string,
+): Promise<PlaylistPayload | null> {
+  const db = getDb()
+  const { data, error } = await db
+    .from('meal_plans')
+    .select('*')
+    .eq('id', code)
+    .eq('is_public', true)
+    .maybeSingle()
+  if (error) throw error
+  return data ? rowToPlaylist(data as MealPlanRow, origin) : null
+}
+
+/**
+ * Delete one of the caller's own playlists, scoped by `user_email` so a code
+ * from someone else can never be removed. Returns false when nothing matched.
+ */
+export async function deletePlaylist(userEmail: string, code: string): Promise<boolean> {
+  const db = getDb()
+  const { data, error } = await db
+    .from('meal_plans')
+    .delete()
+    .eq('id', code)
+    .eq('user_email', userEmail)
+    .select('id')
+  if (error) throw error
+  return (data ?? []).length > 0
+}
+
+/** Copy a shared playlist into the caller's own collection as one record. */
+export async function importPlaylist(
+  userEmail: string,
+  code: string,
+  origin: string,
+): Promise<PlaylistWriteResult | null> {
+  const source = await getPlaylistByCode(code, origin)
+  if (!source) return null
+  return createPlaylist(
+    userEmail,
+    {
+      title: source.title,
+      description: source.description,
+      tags: source.tags,
+      days: source.days || 1,
+      schedule: source.schedule,
+      meals: source.meals,
+    },
+    origin,
+  )
+}
+
+/** Every playlist owned by `userEmail`, newest first. */
+export async function listPlaylists(
+  userEmail: string,
+  origin: string,
+): Promise<PlaylistPayload[]> {
+  const db = getDb()
+  const { data, error } = await db
+    .from('meal_plans')
+    .select('*')
+    .eq('user_email', userEmail)
+    .order('created_at', { ascending: false })
+    .limit(MEAL_PLANS_MAX_PER_USER)
+  if (error) throw error
+  return ((data ?? []) as MealPlanRow[])
+    .filter((row) => row.plan_data)
+    .map((row) => rowToPlaylist(row, origin))
 }
